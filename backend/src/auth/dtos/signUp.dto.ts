@@ -1,8 +1,9 @@
 import {
+  IsBoolean,
   IsEmail,
   IsOptional,
   IsString,
-  IsStrongPassword,
+  // IsStrongPassword,
   IsUrl,
 } from 'class-validator';
 
@@ -11,7 +12,7 @@ export class SignUpDto {
   name: string;
 
   @IsString()
-  @IsStrongPassword({ minLength: 8 })
+  // @IsStrongPassword({ minLength: 8 })
   password: string;
 
   @IsString()
@@ -20,5 +21,9 @@ export class SignUpDto {
 
   @IsOptional()
   @IsUrl()
-  imageUrl: string;
+  image: string;
+
+  @IsOptional()
+  @IsBoolean()
+  rememberMe?: boolean;
 }
