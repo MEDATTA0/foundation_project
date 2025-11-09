@@ -27,9 +27,6 @@ export const ROUTES = {
   LOGIN: "/login",
   SIGNUP: "/signup",
   HOME: "/home",
-  ABOUT: "/about",
-  PRODUCT: "/product",
-  PRICING: "/pricing",
 };
 
 // Bottom Navigation Tabs
@@ -40,12 +37,12 @@ export const NAVIGATION_TABS = [
     icon: "🏠",
   },
   {
-    href: "/about",
+    href: "/students",
     label: "Students",
     icon: "👤",
   },
   {
-    href: "/product",
+    href: "/resources",
     label: "Resources",
     icon: "📚",
   },

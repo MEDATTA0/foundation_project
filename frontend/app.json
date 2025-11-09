@@ -2,6 +2,12 @@
   "scheme": "acme",
   "userInterfaceStyle": "automatic",
   "orientation": "default",
+  "android": {
+    "navigationBar": {
+      "backgroundColor": "#F3F4F6",
+      "barStyle": "dark-content"
+    }
+  },
   "web": {
     "output": "static"
   },
