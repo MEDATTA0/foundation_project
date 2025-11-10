@@ -162,6 +162,12 @@ For more details on the frontend structure, see `frontend/STRUCTURE.md`.
 - [React Native Documentation](https://reactnative.dev/)
 - [NativeWind Documentation](https://www.nativewind.dev/)
 - [Zustand Documentation](https://zustand-demo.pmnd.rs/)
+###Contributors
+.Nkem Nweke
+.Ibrahim Maazou Djahadi
+.Kevin Nyawakira
+.Thomas Odongo
+.Yusuf Nabide
 
 ## Contributing
 
