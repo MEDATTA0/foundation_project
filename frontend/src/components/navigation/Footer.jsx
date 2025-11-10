@@ -2,18 +2,8 @@ import React from "react";
 import { View, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-/**
- * Footer Component
- * Reusable footer component with copyright and optional links
- *
- * @param {Object} props - Component props
- * @param {string} props.copyrightText - Copyright text
- * @param {Array} props.links - Footer links array
- * @param {string} props.className - Additional CSS classes
- * @param {boolean} props.showOnNative - Whether to show on native platforms
- */
 export function Footer({
-  copyrightText = `© ${new Date().getFullYear()} Me`,
+  copyrightText = `© ${new Date().getFullYear()} Classroom Connect`,
   links = [],
   className = "",
   showOnNative = false,

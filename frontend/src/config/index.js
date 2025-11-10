@@ -8,7 +8,7 @@ export const config = {
     timeout: 30000,
   },
   app: {
-    name: "ACME",
+    name: "Classroom Connect",
     version: "1.0.0",
   },
   storage: {
