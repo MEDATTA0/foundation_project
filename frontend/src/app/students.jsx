@@ -1,28 +1,28 @@
 import React from "react";
-import { Text, View, ScrollView } from "react-native";
-import { BaseLayout, Container } from "../components/layout";
+import { useRouter } from "expo-router";
+import { BaseLayout } from "../components/layout";
 import { BottomNavigation } from "../components/navigation";
 import { NAVIGATION_TABS } from "../constants";
+import { StudentsListComponent } from "../components/ui/StudentsListComponent";
 
 /**
  * Students Page
+ * Displays list of students with View buttons
  */
 export default function StudentsPage() {
+  const router = useRouter();
+
+  const handleClose = () => {
+    router.back();
+  };
+
   return (
     <BaseLayout
       showBottomNav={true}
       bottomNav={<BottomNavigation tabs={NAVIGATION_TABS} />}
+      backgroundColor="bg-gray-100"
     >
-      <ScrollView className="flex-1" barStyle="dark-content">
-        <Container>
-          <View className="py-8 px-4">
-            <Text className="text-3xl font-bold mb-4">Students</Text>
-            <Text className="text-gray-600 text-base leading-6">
-              Manage your students and their progress.
-            </Text>
-          </View>
-        </Container>
-      </ScrollView>
+      <StudentsListComponent onClose={handleClose} pageTitle="Students List" />
     </BaseLayout>
   );
 }

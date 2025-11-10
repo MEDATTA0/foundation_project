@@ -11,3 +11,6 @@ export { AuthInput } from "./AuthInput";
 export { AuthButton } from "./AuthButton";
 export { AuthGradientBackground } from "./AuthGradientBackground";
 export { SettingsItem } from "./SettingsItem";
+export { QuizItem } from "./QuizItem";
+export { QuizHeader } from "./QuizHeader";
+export { StudentsListComponent } from "./StudentsListComponent";
