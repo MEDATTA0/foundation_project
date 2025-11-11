@@ -5,9 +5,9 @@ import { BottomNavigation } from "../components/navigation";
 import { NAVIGATION_TABS } from "../constants";
 
 /**
- * Pricing Page
+ * Classroom Page
  */
-export default function PricingPage() {
+export default function ClassroomPage() {
   return (
     <BaseLayout
       showBottomNav={true}
@@ -16,10 +16,9 @@ export default function PricingPage() {
       <ScrollView className="flex-1" barStyle="dark-content">
         <Container>
           <View className="py-8 px-4">
-            <Text className="text-3xl font-bold mb-4">Pricing</Text>
+            <Text className="text-3xl font-bold mb-4">Classroom</Text>
             <Text className="text-gray-600 text-base leading-6">
-              Choose the plan that works best for you. Simple, transparent
-              pricing.
+              Manage your classroom and course materials.
             </Text>
           </View>
         </Container>
