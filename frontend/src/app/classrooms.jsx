@@ -215,7 +215,7 @@ export default function ClassroomsPage() {
           {/* White Background Section with Classrooms */}
           <View className="bg-white -mt-8 pb-6">
             {/* Create Classroom Button */}
-            <View className="mx-4 mb-4">
+            <View className="mx-4 my-4">
               <TouchableOpacity
                 onPress={handleCreateClassroom}
                 activeOpacity={0.7}
