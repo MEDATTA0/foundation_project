@@ -5,7 +5,6 @@ import { CatchHTTPExceptionsFilter } from './http.exceptions.filter';
 import { HttpAdapterHost } from '@nestjs/core';
 import { LoggingInterceptor } from './logging.interceptor';
 import { CatchPrismaExceptionsFilter } from './prisma.exceptions.filter';
-import { AnyExceptionFilter } from './any.exceptions.filter';
 import { CatchBetterAuthExceptionFilter } from './auth.exceptions.filter';
 // import { doubleCsrf } from 'csrf-csrf';
 

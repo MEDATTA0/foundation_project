@@ -18,6 +18,7 @@ export const betterAuthConfig = betterAuth({
     minPasswordLength: MIN_PASSWORD_LENGTH,
     maxPasswordLength: MAX_PASSWORD_LENGTH,
   },
+  secret: process.env.BETTER_AUTH_SECRET,
 
   database: prismaAdapter(prismaClient, { provider: 'mysql' }),
 });
