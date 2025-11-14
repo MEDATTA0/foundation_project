@@ -1,0 +1,59 @@
+name: foundation_project
+
+networks:
+  net:
+
+services:
+  app:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile.dev.local
+    env_file:
+      - ../.env.development.local
+    ports:
+      - "8000:8000"
+      - "8001:9229"
+    volumes:
+      - ../:/app
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - net
+    restart: unless-stopped
+
+  database:
+    image: mysql:8
+    env_file:
+      - ../.env.development.local
+    ports:
+      - "8002:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "${DB_USER}",
+          "--password=${DB_PASSWORD}",
+        ]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    restart: unless-stopped
+    networks:
+      - net
+
+volumes:
+  db_data:
