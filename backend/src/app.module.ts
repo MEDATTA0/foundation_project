@@ -9,6 +9,7 @@ import { ClassesModule } from './classes/classes.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { StudentsModule } from './students/students.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
+import { UsersModule } from './users/users.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -18,6 +19,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
     PrismaModule,
     StudentsModule,
     EnrollmentsModule,
+    UsersModule,
   ],
 
   controllers: [AppController],
