@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SignUpDto } from './dtos/signUp.dto';
 import { AuthService as BetterAuthService } from '@thallesp/nestjs-better-auth';
 import { SignInDto } from './dtos/signIn.dto';
-import { Request, Response } from 'express';
+
 @Injectable()
 export class AuthService {
   constructor(private readonly betterAuthService: BetterAuthService) {}
@@ -23,47 +23,21 @@ export class AuthService {
     return response;
   }
 
-  // async signUp(body: SignUpDto, req: Request, res: Response) {
-  //   const { email, name, password } = body;
-  //   const response = await this.betterAuthService.api.signUpEmail({
-  //     body: { email, name, password },
-  //     asResponse: true,
-  //     headers: req.headers as Record<string, string>,
-  //   });
+  async updateUser(dto: { name: string }) {
+    const { name } = dto;
+    const response = await this.betterAuthService.api.updateUser({
+      body: { name },
+    });
 
-  //   // Copy cookies from better-auth response to Nest.js response
-  //   if (response.headers && response.headers.get('set-cookie')) {
-  //     const cookieHeader = response.headers.get('set-cookie');
-  //     if (cookieHeader) {
-  //       res.header('set-cookie', cookieHeader);
-  //     }
-  //   }
+    return response;
+  }
 
-  //   // Read and return the response body
-  //   const responseData = (await response.json()) as {
-  //     user?: any;
-  //     session?: any;
-  //   };
-  //   return responseData;
-  // }
+  async updatePassword(dto: { currentPassword: string; newPassword: string }) {
+    const { currentPassword, newPassword } = dto;
+    const response = await this.betterAuthService.api.changePassword({
+      body: { currentPassword, newPassword, revokeOtherSessions: true },
+    });
 
-  // async signIn(body: SignInDto, req: Request, res: Response) {
-  //   const { email, password, rememberMe } = body;
-  //   const response = await this.betterAuthService.api.signInEmail({
-  //     body: { email, password, rememberMe },
-  //     asResponse: true,
-  //     headers: req.headers as Record<string, string>,
-  //   });
-
-  //   // return response;
-  //   if (response.headers && response.headers.get('set-cookie')) {
-  //     const cookieHeader = response.headers.get('set-cookie');
-  //     if (cookieHeader) {
-  //       res.header('set-cookie', cookieHeader);
-  //     }
-  //   }
-
-  //   const responseBody = (await response.json()) as Record<string, any>;
-  //   return responseBody;
-  // }
+    return response;
+  }
 }
