@@ -48,12 +48,12 @@ export default function SettingsPage() {
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+          contentContainerStyle={{ flexGrow: 1 }}
         >
           {/* Purple Header Section */}
           <View
-            className="pt-16 px-6 pb-20"
-            style={{ backgroundColor: "#6A0DAD", minHeight: 200 }}
+            className="pt-6 px-6 pb-16"
+            style={{ backgroundColor: "#6A0DAD" }}
           >
             <Text className="text-4xl font-bold text-white mb-2">Settings</Text>
             <Text className="text-lg text-white opacity-90">
@@ -64,7 +64,7 @@ export default function SettingsPage() {
           {/* White Background Section with Card */}
           <View className="bg-white -mt-12 pb-6">
             {/* White Card */}
-            <View className="mx-4 bg-white rounded-3xl shadow-lg overflow-hidden">
+            <View className="mx-4 bg-white rounded-xl shadow overflow-hidden">
               {/* Section Title */}
               <View className="px-6 pt-6 pb-2">
                 <Text className="text-sm text-gray-400">
@@ -137,6 +137,33 @@ export default function SettingsPage() {
                   }
                 />
               </View>
+            </View>
+
+            {/* See Downloads Section */}
+            <View className="mx-4 mt-4 bg-white rounded-xl shadow overflow-hidden">
+              <View className="px-6 pt-6 pb-2">
+                <Text className="text-sm text-gray-400">Downloads</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push("/downloads")}
+                activeOpacity={0.7}
+                className="px-4 py-4 flex-row items-center justify-between border-t border-gray-100"
+              >
+                <View className="flex-row items-center flex-1">
+                  <View className="w-10 h-10 rounded-full bg-purple-100 items-center justify-center mr-4">
+                    <Ionicons name="download" size={24} color="#8B5CF6" />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-base font-bold text-gray-900">
+                      See Downloads
+                    </Text>
+                    <Text className="text-sm text-gray-500 mt-1">
+                      View your downloaded resources
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
             </View>
 
             {/* Logout Button */}
