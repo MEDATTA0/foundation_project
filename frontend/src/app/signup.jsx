@@ -9,16 +9,11 @@ import {
   AuthGradientBackground,
 } from "../components/ui";
 
-/**
- * Sign Up Screen
- * Registration form for new users
- */
 export default function SignUpScreen() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
-    className: "",
     password: "",
   });
 
@@ -71,14 +66,6 @@ export default function SignUpScreen() {
                 value={formData.email}
                 onChangeText={(value) => handleInputChange("email", value)}
                 type="email"
-              />
-
-              <AuthInput
-                label="Class Name"
-                placeholder="Enter class name"
-                value={formData.className}
-                onChangeText={(value) => handleInputChange("className", value)}
-                type="text"
               />
 
               <AuthInput

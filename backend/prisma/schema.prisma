@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+    provider      = "prisma-client"
+    output        = "../generated/prisma"
+    binaryTargets = ["native", "debian-openssl-3.0.x"]
+    runtime       = "nodejs"
+    moduleFormat  = "cjs"
+}
+
+datasource db {
+    provider  = "mysql"
+    url       = env("DATABASE_URL")
+    directUrl = env("DIRECT_URL")
+}
+
+model User {
+    id            String    @id
+    name          String
+    email         String
+    emailVerified Boolean   @map("email_verified")
+    image         String?
+    role          String?
+    createdAt     DateTime  @default(now()) @map("created_at")
+    updatedAt     DateTime  @updatedAt @map("updated_at")
+    Session       Session[]
+    Account       Account[]
+    Teacher       Teacher[]
+
+    @@map("users")
+}
+
+model Account {
+    id                    String    @id
+    userId                String    @map("user_id")
+    accountId             String    @map("account_id")
+    providerId            String    @map("provider_id")
+    accessToken           String?   @map("access_token")
+    refreshToken          String?   @map("refresh_token")
+    accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+    refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+    scope                 String?
+    idToken               String?   @map("id_token")
+    password              String?
+    createdAt             DateTime  @default(now()) @map("created_at")
+    updatedAt             DateTime  @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@map("accounts")
+}
+
+model Session {
+    id        String   @id
+    userId    String   @map("user_id")
+    token     String
+    expiresAt DateTime @map("expires_at")
+    ipAddress String?  @map("ip_address")
+    userAgent String?  @map("user_agent")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    user User @relation(fields: [userId], references: [id])
+
+    @@map("sessions")
+}
+
+model Verification {
+    id         String   @id
+    identifier String
+    value      String
+    expiresAt  DateTime @map("expires_at")
+    createdAt  DateTime @default(now()) @map("created_at")
+    updatedAt  DateTime @updatedAt @map("updated_at")
+
+    @@map("verifications")
+}
+
+model Teacher {
+    id        String   @id @default(cuid())
+    userId    String   @map("user_id")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    user           User             @relation(fields: [userId], references: [id])
+    Class          Class[]
+    TeacherStudent TeacherStudent[]
+
+    @@map("teachers")
+}
+
+model Class {
+    id        String    @id @default(cuid())
+    name      String
+    startDate DateTime  @map("start_date")
+    endDate   DateTime? @map("end_date")
+    teacherId String    @map("teacher_id")
+    createdAt DateTime  @default(now()) @map("created_at")
+    updatedAt DateTime  @updatedAt @map("updated_at")
+
+    teacher    Teacher      @relation(fields: [teacherId], references: [id])
+    Enrollment Enrollment[]
+    Resource   Resource[]
+
+    @@map("classes")
+}
+
+model Student {
+    id        String   @id @default(cuid())
+    name      String
+    birthDate DateTime @map("birth_date")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    Enrollment     Enrollment[]
+    TeacherStudent TeacherStudent[]
+
+    @@map("students")
+}
+
+model Enrollment {
+    id        String   @id @default(cuid())
+    studentId String   @map("student_id")
+    classId   String   @map("class_id")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    class   Class   @relation(fields: [classId], references: [id])
+    student Student @relation(fields: [studentId], references: [id])
+
+    @@map("enrollments")
+}
+
+model TeacherStudent {
+    id        String   @id @default(cuid())
+    teacherId String   @map("teacher_id")
+    studentId String   @map("student_id")
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    student Student @relation(fields: [studentId], references: [id])
+    teacher Teacher @relation(fields: [teacherId], references: [id])
+
+    @@map("teachers_students")
+}
+
+model Resource {
+    id        String   @id @default(cuid())
+    classId   String   @map("class_id")
+    resource  String
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+
+    class Class @relation(fields: [classId], references: [id])
+
+    @@map("resources")
+}
