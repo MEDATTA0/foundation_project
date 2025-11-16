@@ -129,16 +129,12 @@ export default function ClassroomsPage() {
 
   const handleCreateClassroom = () => {
     // Navigate to create classroom screen
-    console.log("Create classroom");
-    // TODO: Navigate to create classroom screen
-    // router.push('/classrooms/create');
+    router.push("/classrooms/create");
   };
 
   const handleViewClassroom = (classroomId) => {
     // Navigate to classroom details screen
-    console.log("View classroom:", classroomId);
-    // TODO: Navigate to classroom details
-    // router.push(`/classrooms/${classroomId}`);
+    router.push(`/classrooms/${classroomId}`);
   };
 
   const handleViewStudents = (classroomId) => {
@@ -168,8 +164,8 @@ export default function ClassroomsPage() {
         >
           {/* Purple Header Section */}
           <View
-            className="pt-16 px-6 pb-6"
-            style={{ backgroundColor: "#6A0DAD", minHeight: 180 }}
+            className="pt-6 px-6 pb-12"
+            style={{ backgroundColor: "#6A0DAD" }}
           >
             <Text className="text-4xl font-bold text-white mb-2">
               Classrooms
@@ -182,7 +178,7 @@ export default function ClassroomsPage() {
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              className="mt-2"
+              className="mt-2 mb-4"
             >
               <View className="flex-row gap-2">
                 {ageRanges.map((ageRange) => {
@@ -248,7 +244,7 @@ export default function ClassroomsPage() {
             ) : (
               filteredClassrooms.map((classroom) => (
                 <View key={classroom.id} className="mx-4 mb-4">
-                  <View className="bg-white rounded-3xl shadow-lg overflow-hidden">
+                  <View className="bg-white rounded-xl shadow overflow-hidden">
                     {/* Classroom Header */}
                     <TouchableOpacity
                       onPress={() => handleViewClassroom(classroom.id)}
@@ -277,7 +273,7 @@ export default function ClassroomsPage() {
                                 {classroom.ageRange.max}
                               </Text>
                             </View>
-                            {classroom.teacherName && (
+                            {/* {classroom.teacherName && (
                               <View className="flex-row items-center mr-2 mb-1">
                                 <Ionicons
                                   name="person"
@@ -288,7 +284,7 @@ export default function ClassroomsPage() {
                                   {classroom.teacherName}
                                 </Text>
                               </View>
-                            )}
+                            )} */}
                           </View>
                         </View>
                         <Ionicons
@@ -338,7 +334,7 @@ export default function ClassroomsPage() {
                     </View>
 
                     {/* Action Buttons */}
-                    <View className="px-4 py-3 flex-row gap-2">
+                    {/* <View className="px-4 py-3 flex-row gap-2">
                       <TouchableOpacity
                         onPress={() => handleViewStudents(classroom.id)}
                         activeOpacity={0.7}
@@ -364,7 +360,7 @@ export default function ClassroomsPage() {
                           Resources
                         </Text>
                       </TouchableOpacity>
-                    </View>
+                    </View> */}
                   </View>
                 </View>
               ))
