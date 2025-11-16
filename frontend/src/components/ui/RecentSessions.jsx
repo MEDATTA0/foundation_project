@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { COLORS } from "../../constants";
 
 export function RecentSessions() {
@@ -57,6 +58,8 @@ export function RecentSessions() {
 }
 
 function SessionCard({ session }) {
+  const router = useRouter();
+
   const getSubjectIcon = (subject) => {
     const icons = {
       Math: "calculator",
@@ -77,11 +80,15 @@ function SessionCard({ session }) {
     return colors[subject] || COLORS.GRAY_500;
   };
 
+  const handleSessionPress = () => {
+    router.push(`/sessions/${session.id}`);
+  };
+
   return (
     <TouchableOpacity
       style={styles.card}
       activeOpacity={0.7}
-      onPress={() => console.log("Session pressed:", session.id)}
+      onPress={handleSessionPress}
     >
       <View style={styles.cardContent}>
         {/* Left: Icon */}

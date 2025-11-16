@@ -1,5 +1,6 @@
 import React from "react";
 import { View, ScrollView } from "react-native";
+import { useRouter } from "expo-router";
 import { BaseLayout } from "../components/layout";
 import { BottomNavigation } from "../components/navigation";
 import {
@@ -12,14 +13,15 @@ import {
 import { NAVIGATION_TABS } from "../constants";
 
 export default function HomePage() {
+  const router = useRouter();
+
   const handleNotificationPress = () => {
     // Navigate to notifications or show notification modal
     console.log("Notifications pressed");
   };
 
   const handleSeeClassroomsPress = () => {
-    // Navigate to classrooms page
-    console.log("See Classrooms pressed");
+    router.push("/classrooms");
   };
 
   return (
@@ -38,7 +40,7 @@ export default function HomePage() {
           <WelcomeBanner />
 
           {/* See Classrooms Card */}
-          <SeeClassroomsCard locked={true} onPress={handleSeeClassroomsPress} />
+          <SeeClassroomsCard onPress={handleSeeClassroomsPress} />
 
           {/* Statistics Grid */}
           <StatisticsGrid />
