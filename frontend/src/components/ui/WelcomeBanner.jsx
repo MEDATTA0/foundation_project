@@ -32,13 +32,13 @@ export function WelcomeBanner({ onDismiss }) {
 
         <View style={styles.whiteBorder} />
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={handleDismiss}
           style={styles.dismissButton}
           activeOpacity={0.7}
         >
           <Ionicons name="close" size={16} color="#FFFFFF" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </View>
   );
