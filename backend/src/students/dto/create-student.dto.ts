@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateStudentDto {
   @ApiProperty({
-    description: 'Student full name',
+    description: 'Full name',
     example: 'John Doe',
   })
   @IsString()
@@ -11,7 +11,7 @@ export class CreateStudentDto {
   name: string;
 
   @ApiProperty({
-    description: 'Student birth date',
+    description: 'Birth date',
     example: '2000-01-15',
   })
   @IsDateString()

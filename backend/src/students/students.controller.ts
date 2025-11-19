@@ -3,13 +3,12 @@ import {
   Get,
   Post,
   Body,
-  // Patch,
+  Patch,
   Param,
   Delete,
 } from '@nestjs/common';
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
-// import { UpdateStudentDto } from './dto/update-student.dto';
 import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import {
   ApiTags,
@@ -19,6 +18,7 @@ import {
   ApiBody,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { UpdateStudentDto } from './dto/update-student.dto';
 
 @ApiTags('Students')
 @ApiBearerAuth('JWT-auth')
@@ -26,20 +26,8 @@ import {
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
-  @ApiOperation({ summary: 'Create a new student' })
-  @ApiResponse({
-    status: 201,
-    description: 'Student created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        birthDate: { type: 'string', format: 'date' },
-        teacherId: { type: 'string' },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Create a student' })
+  @ApiResponse({ status: 201, description: 'Student created' })
   @ApiBody({ type: CreateStudentDto })
   @Post()
   create(
@@ -50,63 +38,43 @@ export class StudentsController {
     return this.studentsService.create(createStudentDto, currentUserId);
   }
 
-  @ApiOperation({ summary: 'Get all students for current teacher' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of students retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          name: { type: 'string' },
-          birthDate: { type: 'string', format: 'date' },
-          teacherId: { type: 'string' },
-        },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Get all students' })
+  @ApiResponse({ status: 200, description: 'Student list retrieved' })
   @Get()
   findAll(@Session() session: UserSession) {
     const currentUserId = session.user.id;
     return this.studentsService.findAll(currentUserId);
   }
 
-  @ApiOperation({ summary: 'Get a student by ID' })
+  @ApiOperation({ summary: 'Get student by ID' })
   @ApiParam({ name: 'id', description: 'Student ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Student retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        birthDate: { type: 'string', format: 'date' },
-        teacherId: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({ status: 404, description: 'Student not found' })
+  @ApiResponse({ status: 200, description: 'Student retrieved' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   @Get(':id')
   findOne(@Param('id') id: string, @Session() session: UserSession) {
     const currentUserId = session.user.id;
     return this.studentsService.findOne(id, currentUserId);
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateStudentDto: UpdateStudentDto) {
-  //   return this.studentsService.update(id, updateStudentDto);
-  // }
+  @ApiOperation({ summary: 'Update student info' })
+  @ApiParam({ name: 'id', description: 'Student ID' })
+  @ApiResponse({ status: 200, description: 'Student updated' })
+  @ApiResponse({ status: 404, description: 'Not Found' })
+  @ApiBody({ type: UpdateStudentDto })
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @Body() updateStudentDto: UpdateStudentDto,
+    @Session() session: UserSession,
+  ) {
+    const currentUserId = session.user.id;
+    return this.studentsService.update(id, updateStudentDto, currentUserId);
+  }
 
   @ApiOperation({ summary: 'Delete a student' })
   @ApiParam({ name: 'id', description: 'Student ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Student deleted successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Student not found' })
+  @ApiResponse({ status: 200, description: 'Student deleted' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   @Delete(':id')
   remove(@Param('id') id: string, @Session() session: UserSession) {
     const currentUserId = session.user.id;

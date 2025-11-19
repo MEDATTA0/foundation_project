@@ -26,20 +26,8 @@ import {
 export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 
-  @ApiOperation({ summary: 'Create a new enrollment' })
-  @ApiResponse({
-    status: 201,
-    description: 'Enrollment created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        studentId: { type: 'string' },
-        classId: { type: 'string' },
-        enrolledAt: { type: 'string', format: 'date-time' },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Enroll student in class' })
+  @ApiResponse({ status: 201, description: 'Enrollment created' })
   @ApiBody({ type: CreateEnrollmentDto })
   @Post()
   create(
@@ -54,57 +42,27 @@ export class EnrollmentsController {
   @ApiQuery({
     name: 'studentId',
     required: false,
-    description: 'Filter by student ID',
+    description: 'Filter by student',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'List of enrollments retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          studentId: { type: 'string' },
-          classId: { type: 'string' },
-          enrolledAt: { type: 'string', format: 'date-time' },
-        },
-      },
-    },
-  })
+  @ApiResponse({ status: 200, description: 'Enrollment list retrieved' })
   @Get()
   findAll(@Query() studentId: string) {
     return this.enrollmentsService.findAll(studentId);
   }
 
-  @ApiOperation({ summary: 'Get an enrollment by ID' })
+  @ApiOperation({ summary: 'Get enrollment by ID' })
   @ApiParam({ name: 'id', description: 'Enrollment ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Enrollment retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        studentId: { type: 'string' },
-        classId: { type: 'string' },
-        enrolledAt: { type: 'string', format: 'date-time' },
-      },
-    },
-  })
-  @ApiResponse({ status: 404, description: 'Enrollment not found' })
+  @ApiResponse({ status: 200, description: 'Enrollment retrieved' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.enrollmentsService.findOne(id);
   }
 
-  @ApiOperation({ summary: 'Delete an enrollment' })
+  @ApiOperation({ summary: 'Remove enrollment' })
   @ApiParam({ name: 'id', description: 'Enrollment ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Enrollment deleted successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Enrollment not found' })
+  @ApiResponse({ status: 200, description: 'Enrollment deleted' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   @Delete(':id')
   remove(@Param('id') id: string, @Session() session: UserSession) {
     const currentUserId = session.user.id;

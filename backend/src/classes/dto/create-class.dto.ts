@@ -9,7 +9,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateClassDto {
   @ApiProperty({
-    description: 'The name of the class',
+    description: 'Class name',
     example: 'Mathematics 101',
   })
   @IsString()
@@ -17,7 +17,7 @@ export class CreateClassDto {
   name: string;
 
   @ApiProperty({
-    description: 'The start date of the class',
+    description: 'Class start date',
     example: '2024-01-15T00:00:00.000Z',
   })
   @IsDateString()
@@ -25,7 +25,7 @@ export class CreateClassDto {
   startDate: Date;
 
   @ApiProperty({
-    description: 'The end date of the class',
+    description: 'Class end date',
     example: '2024-06-15T00:00:00.000Z',
     required: false,
   })

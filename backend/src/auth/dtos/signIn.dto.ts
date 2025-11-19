@@ -3,21 +3,21 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class SignInDto {
   @ApiProperty({
-    description: 'User email address',
+    description: 'Email address',
     example: 'user@example.com',
   })
   @IsEmail()
   email: string;
 
   @ApiProperty({
-    description: 'User password',
+    description: 'Password',
     example: 'password123',
   })
   @IsString()
   password: string;
 
   @ApiProperty({
-    description: 'Whether to remember the user session',
+    description: 'Remember session',
     example: false,
     required: false,
   })

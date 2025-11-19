@@ -3,7 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateEnrollmentDto {
   @ApiProperty({
-    description: 'The ID of the student to enroll',
+    description: 'Student ID',
     example: 'student-uuid-123',
   })
   @IsString()
@@ -11,7 +11,7 @@ export class CreateEnrollmentDto {
   studentId: string;
 
   @ApiProperty({
-    description: 'The ID of the class to enroll the student in',
+    description: 'Class ID',
     example: 'class-uuid-456',
   })
   @IsString()
