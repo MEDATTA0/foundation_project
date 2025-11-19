@@ -33,12 +33,21 @@ export class StudentsService {
   async findOne(id: string, currentUserId: string) {
     const student = await this.prisma.student.findUnique({
       where: { id },
-      include: { TeacherStudent: { select: { teacherId: true } } },
+      include: {
+        Enrollment: true,
+        TeacherStudent: { select: { teacherId: true } },
+        _count: { select: { Attendance: true } },
+      },
     });
+
     if (!student) throw new NotFoundException();
     const { teacherId } = student.TeacherStudent[0];
     if (teacherId !== currentUserId) throw new ForbiddenException();
-    return student;
+    const attendance = await this.prisma.attendance.count({
+      where: { present: true },
+    });
+
+    return { ...student, attendance, total: student._count.Attendance };
   }
 
   // async update(
