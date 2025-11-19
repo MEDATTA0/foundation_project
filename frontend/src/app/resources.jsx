@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Text, View, ScrollView, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { BaseLayout } from "../components/layout";
 import { BottomNavigation } from "../components/navigation";
 import { NAVIGATION_TABS, COLORS } from "../constants";
@@ -10,6 +11,8 @@ import { NAVIGATION_TABS, COLORS } from "../constants";
  * For teachers to filter resources by age range and assign courses to children
  */
 export default function ResourcesPage() {
+  const router = useRouter();
+
   // Age range filter options
   const ageRanges = [
     { id: "all", label: "All", min: null, max: null },
@@ -187,15 +190,8 @@ export default function ResourcesPage() {
   };
 
   const handleViewResource = (resource) => {
-    // View/download resource
-    console.log("View resource:", resource);
-    if (resource.type === "link" && resource.url) {
-      // Open URL in browser
-      // Linking.openURL(resource.url);
-    } else {
-      // Download or view file
-      // handleDownload(resource);
-    }
+    // Navigate to resource details page
+    router.push(`/resources/${resource.id}`);
   };
 
   return (
@@ -212,8 +208,8 @@ export default function ResourcesPage() {
         >
           {/* Purple Header Section */}
           <View
-            className="pt-16 px-6 pb-6"
-            style={{ backgroundColor: "#6A0DAD", minHeight: 180 }}
+            className="pt-6 px-6 pb-12"
+            style={{ backgroundColor: "#6A0DAD" }}
           >
             <Text className="text-4xl font-bold text-white mb-2">
               Resources
@@ -283,7 +279,7 @@ export default function ResourcesPage() {
                   );
                   return (
                     <View key={category} className="mx-4 mb-4">
-                      <View className="bg-white rounded-3xl shadow-lg overflow-hidden">
+                      <View className="bg-white rounded-xl shadow overflow-hidden">
                         {/* Category Header */}
                         <View className="px-6 py-4 flex-row items-center border-b border-gray-100">
                           <View

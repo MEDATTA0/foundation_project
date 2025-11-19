@@ -10,9 +10,9 @@ export function StatisticsGrid() {
       icon: "📖",
     },
     {
-      label: "Total Attendance",
-      value: "60%",
-      icon: "📅",
+      label: "Available resources",
+      value: "21",
+      icon: "📁",
     },
     {
       label: "No. of Classroom",
@@ -20,9 +20,9 @@ export function StatisticsGrid() {
       icon: "📋",
     },
     {
-      label: "Notes",
-      value: "1000",
-      icon: "📚",
+      label: "Downloaded Files",
+      value: "10 files",
+      icon: "📥",
     },
   ];
 

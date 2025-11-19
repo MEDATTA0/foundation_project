@@ -64,10 +64,8 @@ export function StudentsListComponent({
           (student) => student.classroomId === selectedClassroom.id
         );
 
-  const handleViewStudent = (studentName) => {
-    console.log("View student:", studentName);
-    // TODO: Navigate to student details page
-    // router.push(`/student/${studentName}`);
+  const handleViewStudent = (studentId) => {
+    router.push(`/students/${studentId}`);
   };
 
   const handleSelectClassroom = (classroom) => {
@@ -88,17 +86,15 @@ export function StudentsListComponent({
       <View className="relative">
         {/* Purple Banner with rounded top */}
         <View
-          className="px-4 py-5 flex-row items-center mt-0"
-          style={{
-            backgroundColor: COLORS.PRIMARY,
-          }}
+          className="pt-6 px-6 pb-6 flex-row items-center"
+          style={{ backgroundColor: "#6A0DAD" }}
         >
           {/* User Name and Title */}
           <View className="flex-1">
-            <Text className="text-lg font-bold text-white mb-1">
+            <Text className="text-4xl font-bold text-white mb-2">
               {userName}
             </Text>
-            <Text className="text-sm text-white opacity-90">
+            <Text className="text-lg text-white opacity-90">
               {getHeaderTitle()}
             </Text>
           </View>
@@ -204,11 +200,18 @@ export function StudentsListComponent({
                   borderBottomColor: "#F3F4F6",
                 }}
               >
-                <Text className="text-base font-medium text-gray-900 flex-1">
-                  {student.name}
-                </Text>
+                <View className="flex flex-row items-center gap-2">
+                  <View className="w-10 h-10 rounded-full bg-purple-100 items-center justify-center">
+                    <Text className="text-xl font-medium text-[#6A0DAD]">
+                      {student.name.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text className="text-xl font-medium text-slate-700">
+                    {student.name}
+                  </Text>
+                </View>
                 <TouchableOpacity
-                  onPress={() => handleViewStudent(student.name)}
+                  onPress={() => handleViewStudent(student.id)}
                   activeOpacity={0.8}
                   className="px-6 py-2 rounded-lg"
                   style={{ backgroundColor: COLORS.PRIMARY }}
