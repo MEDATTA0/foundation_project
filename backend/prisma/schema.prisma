@@ -102,9 +102,10 @@ model Class {
     createdAt DateTime  @default(now()) @map("created_at")
     updatedAt DateTime  @updatedAt @map("updated_at")
 
-    teacher    Teacher      @relation(fields: [teacherId], references: [id])
-    Enrollment Enrollment[]
-    Resource   Resource[]
+    teacher      Teacher      @relation(fields: [teacherId], references: [id])
+    Enrollment   Enrollment[]
+    Resource     Resource[]
+    ClassSession ClassSession[]
 
     @@map("classes")
 }
@@ -118,6 +119,7 @@ model Student {
 
     Enrollment     Enrollment[]
     TeacherStudent TeacherStudent[]
+    Attendance     Attendance[]
 
     @@map("students")
 }
@@ -158,4 +160,33 @@ model Resource {
     class Class @relation(fields: [classId], references: [id])
 
     @@map("resources")
+}
+
+model ClassSession {
+    id        String @id @default(cuid())
+    classId   String @map("class_id")
+    duration  Float
+    location  String
+    resources String
+    createdAt DateTime @default(now()) @map("created_at")
+    updatedAt DateTime @updatedAt @map("updated_at")
+    
+    Attendance Attendance[]
+    class   Class  @relation(fields: [classId], references: [id])
+
+    @@map("class_sessions")
+}
+
+model Attendance {
+    id             String   @id @default(cuid())
+    classSessionId String   @map("class_session_id")
+    studentId      String   @map("student_id")
+    present        Boolean
+    createdAt      DateTime @default(now()) @map("created_at")
+    updatedAt      DateTime @updatedAt @map("updated_at")
+
+    student Student @relation(fields: [studentId], references: [id])
+    classSession   ClassSession  @relation(fields: [classSessionId], references: [id])
+    
+    @@map("attendances")
 }

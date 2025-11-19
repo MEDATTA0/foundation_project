@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { SignInDto } from './dtos/signIn.dto';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dtos/signUp.dto';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
-import type { Request, Response } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { changePasswordDto } from './dtos/changePassword.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -49,23 +49,6 @@ export class AuthController {
   register(@Body() dto: SignUpDto) {
     return this.authService.signUp(dto);
   }
-  // @Post('register')
-  // async signUp(
-  //   @Body() body: SignUpDto,
-  //   @Req() req: Request,
-  //   @Res({ passthrough: true }) res: Response,
-  // ) {
-  //   return this.authService.signUp(body, req, res);
-  // }
-
-  // @Post('login')
-  // async login(
-  //   @Body() body: SignInDto,
-  //   @Req() req: Request,
-  //   @Res({ passthrough: true }) res: Response,
-  // ) {
-  //   return this.authService.signIn(body, req, res);
-  // }
 
   @ApiOperation({ summary: 'User logout' })
   @ApiResponse({
@@ -78,5 +61,12 @@ export class AuthController {
   @Get('logout')
   logout() {
     return null;
+  }
+
+  @ApiOperation({ summary: 'Update password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @Patch('update-password')
+  updatePassword(@Body() dto: changePasswordDto) {
+    return this.authService.updatePassword(dto);
   }
 }
