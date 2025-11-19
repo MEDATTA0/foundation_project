@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateStudentDto } from './dto/create-student.dto';
-// import { UpdateStudentDto } from './dto/update-student.dto';
+import { UpdateStudentDto } from './dto/update-student.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -50,16 +50,18 @@ export class StudentsService {
     return { ...student, attendance, total: student._count.Attendance };
   }
 
-  // async update(
-  //   id: number,
-  //   updateStudentDto: UpdateStudentDto,
-  //   currentUserId: string,
-  // ) {
-  //   return this.prisma.student.update({
-  //     where: { id, userId: currentUserId },
-  //     data: updateStudentDto,
-  //   });
-  // }
+  async update(
+    studentId: string,
+    updateStudentDto: UpdateStudentDto,
+    currentUserId: string,
+  ) {
+    await this.findOne(studentId, currentUserId);
+
+    return await this.prisma.student.update({
+      where: { id: studentId },
+      data: updateStudentDto,
+    });
+  }
 
   async remove(id: string, currentUserId: string) {
     await this.findOne(id, currentUserId);

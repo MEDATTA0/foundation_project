@@ -11,7 +11,7 @@ import { StudentsModule } from './students/students.module';
 import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { UsersModule } from './users/users.module';
 import { AttendancesModule } from './attendances/attendances.module';
-import { ClassSessionsTsModule } from './class-sessions.ts/class-sessions.ts.module';
+import { ClassSessionsModule } from './class-sessions/class-sessions.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -23,7 +23,7 @@ import { ClassSessionsTsModule } from './class-sessions.ts/class-sessions.ts.mod
     EnrollmentsModule,
     UsersModule,
     AttendancesModule,
-    ClassSessionsTsModule,
+    ClassSessionsModule,
   ],
 
   controllers: [AppController],

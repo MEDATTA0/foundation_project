@@ -26,21 +26,8 @@ import {
 export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
-  @ApiOperation({ summary: 'Create a new class' })
-  @ApiResponse({
-    status: 201,
-    description: 'Class created successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        startDate: { type: 'string', format: 'date-time' },
-        endDate: { type: 'string', format: 'date-time' },
-        teacherId: { type: 'string' },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Create a class' })
+  @ApiResponse({ status: 201, description: 'Class created' })
   @ApiBody({ type: CreateClassDto })
   @Post()
   create(
@@ -51,47 +38,18 @@ export class ClassesController {
     return this.classesService.create(createClassDto, currentUserId);
   }
 
-  @ApiOperation({ summary: 'Get all classes for current user' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of classes retrieved successfully',
-    schema: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          name: { type: 'string' },
-          startDate: { type: 'string', format: 'date-time' },
-          endDate: { type: 'string', format: 'date-time' },
-          teacherId: { type: 'string' },
-        },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Get all classes' })
+  @ApiResponse({ status: 200, description: 'Class list retrieved' })
   @Get()
   findAll(@Session() session: UserSession) {
     const currentUserId = session.user.id;
     return this.classesService.findAll(currentUserId);
   }
 
-  @ApiOperation({ summary: 'Get a class by ID' })
+  @ApiOperation({ summary: 'Get class by ID' })
   @ApiParam({ name: 'id', description: 'Class ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Class retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        startDate: { type: 'string', format: 'date-time' },
-        endDate: { type: 'string', format: 'date-time' },
-        teacherId: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({ status: 404, description: 'Class not found' })
+  @ApiResponse({ status: 200, description: 'Class retrieved' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   @Get(':id')
   findOne(@Param('id') id: string, @Session() session: UserSession) {
     const currentUserId = session.user.id;
@@ -101,21 +59,8 @@ export class ClassesController {
   @ApiOperation({ summary: 'Update a class' })
   @ApiParam({ name: 'id', description: 'Class ID' })
   @ApiBody({ type: UpdateClassDto })
-  @ApiResponse({
-    status: 200,
-    description: 'Class updated successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        startDate: { type: 'string', format: 'date-time' },
-        endDate: { type: 'string', format: 'date-time' },
-        teacherId: { type: 'string' },
-      },
-    },
-  })
-  @ApiResponse({ status: 404, description: 'Class not found' })
+  @ApiResponse({ status: 200, description: 'Class updated' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -128,11 +73,8 @@ export class ClassesController {
 
   @ApiOperation({ summary: 'Delete a class' })
   @ApiParam({ name: 'id', description: 'Class ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Class deleted successfully',
-  })
-  @ApiResponse({ status: 404, description: 'Class not found' })
+  @ApiResponse({ status: 200, description: 'Class deleted' })
+  @ApiResponse({ status: 404, description: 'Not found' })
   @Delete(':id')
   remove(@Param('id') id: string, @Session() session: UserSession) {
     const currentUserId = session.user.id;

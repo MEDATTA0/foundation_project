@@ -10,14 +10,14 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class SignUpDto {
   @ApiProperty({
-    description: 'User full name',
+    description: 'Full name',
     example: 'John Doe',
   })
   @IsString()
   name: string;
 
   @ApiProperty({
-    description: 'User password (minimum 8 characters)',
+    description: 'Password (min 8 characters)',
     example: 'password123',
   })
   @IsString()
@@ -25,7 +25,7 @@ export class SignUpDto {
   password: string;
 
   @ApiProperty({
-    description: 'User email address',
+    description: 'Email address',
     example: 'user@example.com',
   })
   @IsString()
@@ -42,7 +42,7 @@ export class SignUpDto {
   image: string;
 
   @ApiProperty({
-    description: 'Whether to remember the user session',
+    description: 'Remember session',
     example: false,
     required: false,
   })

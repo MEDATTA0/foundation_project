@@ -12,18 +12,8 @@ import { changePasswordDto } from './dtos/changePassword.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @ApiOperation({ summary: 'User login' })
-  @ApiResponse({
-    status: 200,
-    description: 'Login successful',
-    schema: {
-      type: 'object',
-      properties: {
-        token: { type: 'string' },
-        user: { type: 'object' },
-      },
-    },
-  })
+  @ApiOperation({ summary: 'Login' })
+  @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiBody({ type: SignInDto })
   @Post('login')
@@ -31,40 +21,25 @@ export class AuthController {
     return this.authService.signIn(dto);
   }
 
-  @ApiOperation({ summary: 'User registration' })
-  @ApiResponse({
-    status: 201,
-    description: 'Registration successful',
-    schema: {
-      type: 'object',
-      properties: {
-        token: { type: 'string' },
-        user: { type: 'object' },
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiOperation({ summary: 'Register new user' })
+  @ApiResponse({ status: 201, description: 'User registered' })
+  @ApiResponse({ status: 400, description: 'Invalid data' })
   @ApiBody({ type: SignUpDto })
   @Post('register')
   register(@Body() dto: SignUpDto) {
     return this.authService.signUp(dto);
   }
 
-  @ApiOperation({ summary: 'User logout' })
-  @ApiResponse({
-    status: 200,
-    description: 'Logout successful',
-    schema: {
-      type: 'null',
-    },
-  })
+  @ApiOperation({ summary: 'Logout' })
+  @ApiResponse({ status: 200, description: 'Logged out' })
   @Get('logout')
   logout() {
     return null;
   }
 
-  @ApiOperation({ summary: 'Update password' })
-  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiOperation({ summary: 'Change password' })
+  @ApiResponse({ status: 200, description: 'Password updated' })
+  @ApiBody({ type: changePasswordDto })
   @Patch('update-password')
   updatePassword(@Body() dto: changePasswordDto) {
     return this.authService.updatePassword(dto);
