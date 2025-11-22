@@ -2,4 +2,4 @@
  * Services Exports
  */
 
-export { api, apiRequest } from "./api";
+export { api, axiosInstance, API_BASE_URL } from "./api";

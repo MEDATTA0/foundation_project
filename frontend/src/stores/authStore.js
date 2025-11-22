@@ -2,10 +2,6 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/**
- * Authentication Store
- * Manages user authentication state and user data
- */
 export const useAuthStore = create(
   persist(
     (set, get) => ({

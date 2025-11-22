@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,23 +9,70 @@ import {
   AuthButton,
   AuthGradientBackground,
 } from "../components/ui";
+import { api } from "../services/api";
+import { API_ENDPOINTS } from "../constants";
+import { useAuthStore } from "../stores/authStore";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { login, setLoading } = useAuthStore();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    rememberMe: false,
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (error) setError(null);
   };
 
-  const handleLogin = () => {
-    // Handle login logic
-    console.log("Login:", formData);
-    // Navigate to home or dashboard
-    router.push("/home");
+  const handleLogin = async () => {
+    // Validate form
+    if (!formData.email || !formData.password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setLoading(true);
+
+    try {
+      const response = await api.post(API_ENDPOINTS.AUTH.LOGIN, {
+        email: formData.email,
+        password: formData.password,
+        rememberMe: formData.rememberMe,
+      });
+
+      // Response structure: { token, user }
+      if (response.token && response.user) {
+        // Store token and user in auth store
+        login(response.user, response.token);
+        console.log("Login successful");
+        console.log(response.user);
+        console.log(response.token);
+
+        // Navigate to home
+        router.replace("/home");
+      } else {
+        setError("Invalid response from server");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      const errorMessage =
+        error.message || "Login failed. Please check your credentials.";
+      setError(errorMessage);
+
+      // Show alert for better UX
+      Alert.alert("Login Failed", errorMessage);
+    } finally {
+      setIsLoading(false);
+      setLoading(false);
+    }
   };
 
   const handleSignUpLink = () => {
@@ -70,6 +117,13 @@ export default function LoginScreen() {
               <AppLogo size={100} />
             </View>
 
+            {/* Error Message */}
+            {error && (
+              <View className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                <Text className="text-red-600 text-sm">{error}</Text>
+              </View>
+            )}
+
             {/* Input Fields */}
             <View className="mb-4">
               <AuthInput
@@ -99,7 +153,12 @@ export default function LoginScreen() {
 
             {/* Login Button */}
             <View className="w-full mb-5">
-              <AuthButton title="Login" onPress={handleLogin} />
+              <AuthButton
+                title="Login"
+                onPress={handleLogin}
+                loading={isLoading}
+                disabled={isLoading}
+              />
             </View>
 
             {/* Sign Up Link */}
