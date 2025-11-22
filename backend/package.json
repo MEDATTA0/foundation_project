@@ -21,7 +21,7 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
-    "postinstall": "yarn prisma generate",
+    "postinstall": "if [ -f .env.development.local ]; then dotenvx run --env-file=.env.development.local -- yarn prisma generate; else echo 'Warning: .env.development.local not found. Skipping prisma generate. Run yarn prisma:generate-local after creating the env file.'; fi",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
