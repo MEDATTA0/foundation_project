@@ -17,8 +17,8 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiBody({ type: SignInDto })
   @Post('login')
-  login(@Body() dto: SignInDto) {
-    return this.authService.signIn(dto);
+  async login(@Body() dto: SignInDto) {
+    return await this.authService.signIn(dto);
   }
 
   @ApiOperation({ summary: 'Register new user' })
@@ -26,8 +26,8 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid data' })
   @ApiBody({ type: SignUpDto })
   @Post('register')
-  register(@Body() dto: SignUpDto) {
-    return this.authService.signUp(dto);
+  async register(@Body() dto: SignUpDto) {
+    return await this.authService.signUp(dto);
   }
 
   @ApiOperation({ summary: 'Logout' })
@@ -41,7 +41,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Password updated' })
   @ApiBody({ type: changePasswordDto })
   @Patch('update-password')
-  updatePassword(@Body() dto: changePasswordDto) {
-    return this.authService.updatePassword(dto);
+  async updatePassword(@Body() dto: changePasswordDto) {
+    return await this.authService.updatePassword(dto);
   }
 }
