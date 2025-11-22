@@ -2,10 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { SignUpDto } from './dtos/signUp.dto';
 import { AuthService as BetterAuthService } from '@thallesp/nestjs-better-auth';
 import { SignInDto } from './dtos/signIn.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly betterAuthService: BetterAuthService) {}
+  constructor(
+    private readonly betterAuthService: BetterAuthService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async signIn(dto: SignInDto) {
     const response = await this.betterAuthService.api.signInEmail({
@@ -19,7 +23,9 @@ export class AuthService {
     const response = await this.betterAuthService.api.signUpEmail({
       body: { email, name, password },
     });
-
+    await this.prisma.teacher.create({
+      data: { id: response.user.id, userId: response.user.id },
+    });
     return response;
   }
 
