@@ -9,6 +9,10 @@ import {
 } from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
+import {
+  EnrollmentResponseDto,
+  EnrollmentWithClassResponseDto,
+} from './dto/enrollment-response.dto';
 import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import {
   ApiTags,
@@ -27,7 +31,11 @@ export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
 
   @ApiOperation({ summary: 'Enroll student in class' })
-  @ApiResponse({ status: 201, description: 'Enrollment created' })
+  @ApiResponse({
+    status: 201,
+    description: 'Enrollment created',
+    type: EnrollmentResponseDto,
+  })
   @ApiBody({ type: CreateEnrollmentDto })
   @Post()
   create(
@@ -44,7 +52,11 @@ export class EnrollmentsController {
     required: false,
     description: 'Filter by student',
   })
-  @ApiResponse({ status: 200, description: 'Enrollment list retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Enrollment list retrieved',
+    type: [EnrollmentResponseDto],
+  })
   @Get()
   findAll(@Query() studentId: string) {
     return this.enrollmentsService.findAll(studentId);
@@ -52,7 +64,11 @@ export class EnrollmentsController {
 
   @ApiOperation({ summary: 'Get enrollment by ID' })
   @ApiParam({ name: 'id', description: 'Enrollment ID' })
-  @ApiResponse({ status: 200, description: 'Enrollment retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Enrollment retrieved',
+    type: EnrollmentWithClassResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Get(':id')
   findOne(@Param('id') id: string) {

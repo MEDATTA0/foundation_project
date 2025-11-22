@@ -13,7 +13,7 @@ export class StudentsService {
 
   async create(createStudentDto: CreateStudentDto, currentUserId: string) {
     const { name, birthDate } = createStudentDto;
-    return this.prisma.student.create({
+    return await this.prisma.student.create({
       data: {
         name,
         birthDate: new Date(birthDate),

@@ -12,6 +12,10 @@ import { AttendancesService } from './attendances.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 import {
+  AttendanceResponseDto,
+  AttendanceWithStudentResponseDto,
+} from './dto/attendance-response.dto';
+import {
   ApiTags,
   ApiOperation,
   ApiResponse,
@@ -28,7 +32,11 @@ export class AttendancesController {
   constructor(private readonly attendancesService: AttendancesService) {}
 
   @ApiOperation({ summary: 'Record student attendance' })
-  @ApiResponse({ status: 201, description: 'Attendance recorded' })
+  @ApiResponse({
+    status: 201,
+    description: 'Attendance recorded',
+    type: AttendanceResponseDto,
+  })
   @ApiBody({ type: CreateAttendanceDto })
   @Post()
   create(@Body() createAttendanceDto: CreateAttendanceDto) {
@@ -41,7 +49,11 @@ export class AttendancesController {
     required: true,
     description: 'Class session ID',
   })
-  @ApiResponse({ status: 200, description: 'Attendance list retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Attendance list retrieved',
+    type: [AttendanceWithStudentResponseDto],
+  })
   @Get()
   findAll(@Query('classSessionId') classSessionId: string) {
     return this.attendancesService.findAll(classSessionId);
@@ -49,7 +61,11 @@ export class AttendancesController {
 
   @ApiOperation({ summary: 'Get attendance by ID' })
   @ApiParam({ name: 'id', description: 'Attendance ID' })
-  @ApiResponse({ status: 200, description: 'Attendance retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Attendance retrieved',
+    type: AttendanceResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -59,7 +75,11 @@ export class AttendancesController {
   @ApiOperation({ summary: 'Update attendance record' })
   @ApiParam({ name: 'id', description: 'Attendance ID' })
   @ApiBody({ type: UpdateAttendanceDto })
-  @ApiResponse({ status: 200, description: 'Attendance updated' })
+  @ApiResponse({
+    status: 200,
+    description: 'Attendance updated',
+    type: AttendanceResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Patch(':id')
   update(
