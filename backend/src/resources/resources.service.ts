@@ -11,7 +11,25 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class ResourcesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getTeacherFromUserId(currentUserId: string) {
+    // Find or create the teacher record for this user
+    let teacher = await this.prisma.teacher.findFirst({
+      where: { userId: currentUserId },
+    });
+
+    // If teacher doesn't exist, create it
+    if (!teacher) {
+      teacher = await this.prisma.teacher.create({
+        data: { userId: currentUserId },
+      });
+    }
+
+    return teacher;
+  }
+
   private async verifyClassOwnership(classId: string, currentUserId: string) {
+    const teacher = await this.getTeacherFromUserId(currentUserId);
+
     const classroom = await this.prisma.class.findUnique({
       where: { id: classId },
     });
@@ -20,7 +38,7 @@ export class ResourcesService {
       throw new NotFoundException('Class not found');
     }
 
-    if (classroom.teacherId !== currentUserId) {
+    if (classroom.teacherId !== teacher.id) {
       throw new ForbiddenException('You do not own this class');
     }
 
@@ -33,18 +51,19 @@ export class ResourcesService {
     currentUserId: string,
   ) {
     await this.verifyClassOwnership(classId, currentUserId);
-    const data = createResourceDto.resources.map((res) => ({
-      classId,
-      resource: res,
-    }));
 
-    await this.prisma.resource.createMany({
-      data,
-      skipDuplicates: true,
+    const newResource = await this.prisma.resource.create({
+      data: {
+        classId,
+        title: createResourceDto.title,
+        description: createResourceDto.description,
+        resource: createResourceDto.resource,
+        ageMin: createResourceDto.ageMin,
+        ageMax: createResourceDto.ageMax,
+      },
     });
-    return await this.prisma.resource.findMany({
-      where: { classId },
-    });
+
+    return newResource;
   }
 
   async findAll(classId: string, currentUserId: string) {
@@ -96,5 +115,44 @@ export class ResourcesService {
     await this.prisma.resource.delete({ where: { id: resourceId } });
 
     return null;
+  }
+
+  /**
+   * Get all resources for a teacher across all their classes
+   * This is useful for displaying a resource library
+   */
+  async findAllForTeacher(currentUserId: string) {
+    const teacher = await this.getTeacherFromUserId(currentUserId);
+
+    // Get all classes for this teacher
+    const classes = await this.prisma.class.findMany({
+      where: { teacherId: teacher.id },
+      select: { id: true, name: true },
+    });
+
+    const classIds = classes.map((cls) => cls.id);
+
+    // Get all resources for these classes
+    const resources = await this.prisma.resource.findMany({
+      where: { classId: { in: classIds } },
+      include: {
+        class: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Transform to include age range
+    return resources.map((resource) => ({
+      ...resource,
+      ageRange:
+        resource.ageMin !== null && resource.ageMax !== null
+          ? { min: resource.ageMin, max: resource.ageMax }
+          : null,
+    }));
   }
 }

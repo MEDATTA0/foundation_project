@@ -1,172 +1,81 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, ScrollView, TouchableOpacity, Modal } from "react-native";
+import {
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Modal,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { BaseLayout } from "../../components/layout";
-import { BottomNavigation } from "../../components/navigation";
-import { NAVIGATION_TABS, COLORS } from "../../constants";
+import { VideoPlayer } from "../../components/ui/VideoPlayer";
+import { WebViewPlayer } from "../../components/ui/WebViewPlayer";
+import { YouTubePlayer } from "../../components/ui/YouTubePlayer";
+import { COLORS, API_ENDPOINTS } from "../../constants";
+import {
+  isYouTubeUrl,
+  isVimeoUrl,
+  getVimeoEmbedUrl,
+  extractYouTubeVideoId,
+} from "../../utils/videoUtils";
+import { api } from "../../services/api";
+import { useAuthStore } from "../../stores";
+import {
+  isResourceDownloaded,
+  getLocalFilePath,
+  downloadResource,
+  removeDownloadedResource,
+} from "../../utils/downloadManager";
 
-/**
- * Resource Details Page
- * View detailed information about a resource and interact with it
- */
 export default function ResourceDetailsPage() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { id, classId } = useLocalSearchParams();
+  const { isAuthenticated } = useAuthStore();
   const [resource, setResource] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [localPath, setLocalPath] = useState(null);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showWebViewPlayer, setShowWebViewPlayer] = useState(false);
+  const [showYouTubePlayer, setShowYouTubePlayer] = useState(false);
+  const [videoUri, setVideoUri] = useState(null);
+  const [webViewUri, setWebViewUri] = useState(null);
+  const [youtubeVideoId, setYoutubeVideoId] = useState(null);
+  const [isVimeo, setIsVimeo] = useState(false);
 
-  // Mock resource data - Replace with actual API call
-  const mockResources = {
-    1: {
-      id: 1,
-      title: "Basic Counting Course",
-      description:
-        "Learn numbers 1-10 with fun activities. This comprehensive course introduces children to basic counting through interactive exercises, colorful illustrations, and engaging stories that make learning numbers enjoyable and memorable.",
-      type: "document",
-      category: "Mathematics",
-      ageRange: { min: 4, max: 6 },
-      fileType: "PDF",
-      size: "2.4 MB",
-      duration: "15 min read",
-      pages: 24,
-      createdAt: "2024-01-15",
-      author: "Ms. Sarah Johnson",
-      tags: ["Numbers", "Counting", "Basic Math"],
-    },
-    2: {
-      id: 2,
-      title: "Alphabet Adventure",
-      description:
-        "Interactive alphabet learning video. Join our animated characters as they explore each letter of the alphabet through songs, stories, and fun activities. Perfect for young learners starting their reading journey.",
-      type: "video",
-      category: "Language",
-      ageRange: { min: 4, max: 6 },
-      fileType: "MP4",
-      size: "125 MB",
-      duration: "10 min",
-      resolution: "1080p",
-      createdAt: "2024-01-20",
-      author: "Mr. David Chen",
-      tags: ["Alphabet", "Reading", "Language"],
-    },
-    3: {
-      id: 3,
-      title: "Simple Addition",
-      description:
-        "Introduction to addition for beginners. This course teaches children the fundamentals of addition through visual aids, step-by-step instructions, and practice exercises.",
-      type: "document",
-      category: "Mathematics",
-      ageRange: { min: 7, max: 10 },
-      fileType: "PDF",
-      size: "1.8 MB",
-      duration: "12 min read",
-      pages: 18,
-      createdAt: "2024-02-01",
-      author: "Ms. Emily Rodriguez",
-      tags: ["Addition", "Math", "Arithmetic"],
-    },
-    4: {
-      id: 4,
-      title: "Reading Comprehension",
-      description:
-        "Practice reading and understanding stories. Develop critical thinking skills through engaging stories and comprehension questions.",
-      type: "document",
-      category: "Language",
-      ageRange: { min: 7, max: 10 },
-      fileType: "PDF",
-      size: "3.2 MB",
-      duration: "20 min read",
-      pages: 32,
-      createdAt: "2024-02-05",
-      author: "Mr. James Wilson",
-      tags: ["Reading", "Comprehension", "Stories"],
-    },
-    5: {
-      id: 5,
-      title: "Science Experiments",
-      description:
-        "Fun science activities for kids. Learn about the world through hands-on experiments and exciting discoveries.",
-      type: "video",
-      category: "Science",
-      ageRange: { min: 7, max: 10 },
-      fileType: "MP4",
-      size: "98 MB",
-      duration: "15 min",
-      resolution: "1080p",
-      createdAt: "2024-02-10",
-      author: "Ms. Lisa Anderson",
-      tags: ["Science", "Experiments", "Discovery"],
-    },
-    6: {
-      id: 6,
-      title: "Introduction to Coding",
-      description:
-        "Learn basic programming concepts through interactive exercises and visual programming.",
-      type: "link",
-      category: "Technology",
-      ageRange: { min: 11, max: 14 },
-      url: "https://example.com/coding",
-      createdAt: "2024-02-15",
-      author: "Mr. Michael Brown",
-      tags: ["Coding", "Programming", "Technology"],
-    },
-    7: {
-      id: 7,
-      title: "Advanced Mathematics",
-      description:
-        "Complex problem solving and critical thinking. Advanced concepts for older students.",
-      type: "document",
-      category: "Mathematics",
-      ageRange: { min: 11, max: 14 },
-      fileType: "PDF",
-      size: "4.5 MB",
-      duration: "30 min read",
-      pages: 45,
-      createdAt: "2024-02-20",
-      author: "Ms. Lisa Anderson",
-      tags: ["Math", "Problem Solving", "Advanced"],
-    },
-    8: {
-      id: 8,
-      title: "Creative Writing",
-      description:
-        "Express yourself through writing. Learn to write stories, poems, and creative pieces.",
-      type: "document",
-      category: "Language",
-      ageRange: { min: 11, max: 14 },
-      fileType: "DOCX",
-      size: "456 KB",
-      duration: "25 min read",
-      pages: 12,
-      createdAt: "2024-02-25",
-      author: "Ms. Emily Rodriguez",
-      tags: ["Writing", "Creative", "Language"],
-    },
+  // Determine resource type from URL
+  const getResourceType = (url) => {
+    if (!url) return "link";
+
+    // Check for YouTube/Vimeo first (these are videos but need WebView)
+    if (
+      url.includes("youtube.com") ||
+      url.includes("youtu.be") ||
+      url.includes("vimeo.com")
+    )
+      return "video";
+
+    // Check for document URLs
+    if (
+      url.match(/\.(pdf|doc|docx)$/i) ||
+      url.includes("drive.google.com") ||
+      url.includes("dropbox.com")
+    )
+      return "document";
+
+    // Check for direct video file URLs (MP4, AVI, MOV, etc.)
+    if (url.match(/\.(mp4|avi|mov|m4v|mkv|webm)$/i)) return "video";
+
+    // Check for images
+    if (url.match(/\.(jpg|jpeg|png|gif)$/i)) return "image";
+
+    return "link";
   };
-
-  // Fetch resource data
-  useEffect(() => {
-    const fetchResourceData = async () => {
-      setLoading(true);
-      try {
-        // TODO: Replace with actual API call
-        // const response = await api.get(`/resources/${id}`);
-        // setResource(response.data);
-
-        // Using mock data
-        const resourceData = mockResources[id] || mockResources[1];
-        setResource(resourceData);
-      } catch (error) {
-        console.error("Error fetching resource data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchResourceData();
-  }, [id]);
 
   const getResourceIcon = (type) => {
     switch (type) {
@@ -183,52 +92,244 @@ export default function ResourceDetailsPage() {
     }
   };
 
-  const handleReadContent = () => {
-    // Navigate to reading view or open PDF viewer
-    console.log("Reading content:", resource);
-    // TODO: Implement reading functionality
-    // router.push(`/resources/${resource.id}/read`);
-    alert("Opening document for reading...");
+  // Check if resource is downloaded
+  useEffect(() => {
+    const checkDownloadStatus = async () => {
+      if (!id) return;
+
+      const downloaded = await isResourceDownloaded(id);
+      setIsDownloaded(downloaded);
+
+      if (downloaded) {
+        const path = await getLocalFilePath(id);
+        setLocalPath(path);
+      }
+    };
+
+    checkDownloadStatus();
+  }, [id]);
+
+  // Fetch resource data
+  useEffect(() => {
+    const fetchResourceData = async () => {
+      if (!id || !classId || !isAuthenticated) {
+        Alert.alert("Error", "Missing resource information");
+        router.back();
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const data = await api.get(API_ENDPOINTS.RESOURCES.GET(classId, id));
+        setResource(data);
+      } catch (error) {
+        console.error("Error fetching resource data:", error);
+        Alert.alert(
+          "Error",
+          error.message || "Failed to load resource details"
+        );
+        router.back();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchResourceData();
+  }, [id, classId, isAuthenticated]);
+
+  const handlePlayVideo = async () => {
+    if (!resource?.resource) return;
+
+    const resourceType = getResourceType(resource.resource);
+    if (resourceType !== "video") {
+      handleOpenResource();
+      return;
+    }
+
+    // ALWAYS check for YouTube/Vimeo FIRST - these MUST use specialized players
+    const youtubeUrl = isYouTubeUrl(resource.resource);
+    const vimeoUrl = isVimeoUrl(resource.resource);
+
+    if (youtubeUrl) {
+      // Extract video ID and show in YouTube player
+      const videoId = extractYouTubeVideoId(resource.resource);
+      console.log("videoId", videoId);
+      if (videoId) {
+        setYoutubeVideoId(videoId);
+        setShowYouTubePlayer(true);
+        return; // IMPORTANT: Return early to prevent reaching react-native-video
+      } else {
+        Alert.alert("Error", "Invalid YouTube URL");
+        return;
+      }
+    }
+
+    if (vimeoUrl) {
+      // Convert to embed URL and show in WebView
+      const embedUrl = getVimeoEmbedUrl(resource.resource);
+      console.log("embedUrl", embedUrl);
+      if (embedUrl) {
+        setWebViewUri(embedUrl);
+        setIsYouTube(false);
+        setIsVimeo(true);
+        setShowWebViewPlayer(true);
+        return; // IMPORTANT: Return early to prevent reaching react-native-video
+      } else {
+        Alert.alert("Error", "Invalid Vimeo URL");
+        return;
+      }
+    }
+
+    // For direct video URLs only (not YouTube/Vimeo)
+    // Check if it's a direct video file URL (MP4, AVI, MOV, etc.)
+    const isDirectVideoUrl = resource.resource.match(
+      /\.(mp4|avi|mov|m4v|mkv|webm)$/i
+    );
+
+    if (!isDirectVideoUrl) {
+      Alert.alert(
+        "Unsupported Format",
+        "This video format is not supported for in-app playback. Please use a direct video file URL (MP4, AVI, MOV) or YouTube/Vimeo link."
+      );
+      return;
+    }
+
+    // Double-check: Never allow YouTube/Vimeo URLs to reach react-native-video
+    if (
+      resource.resource.includes("youtube") ||
+      resource.resource.includes("youtu.be") ||
+      resource.resource.includes("vimeo")
+    ) {
+      Alert.alert(
+        "Error",
+        "YouTube and Vimeo videos must be played using WebView. Please check the video URL."
+      );
+      return;
+    }
+
+    // For direct video URLs, check if downloaded
+    if (isDownloaded && localPath) {
+      setVideoUri(localPath);
+    } else {
+      setVideoUri(resource.resource);
+    }
+
+    setShowVideoPlayer(true);
   };
 
-  const handlePlayVideo = () => {
-    // Open video player
-    console.log("Playing video:", resource);
-    // TODO: Implement video playback
-    // router.push(`/resources/${resource.id}/play`);
-    alert("Playing video...");
+  const handleDownload = async () => {
+    if (!resource?.resource || !id) return;
+
+    const resourceType = getResourceType(resource.resource);
+
+    // Check if it's a YouTube or Vimeo URL
+    const youtubeUrl = isYouTubeUrl(resource.resource);
+    const vimeoUrl = isVimeoUrl(resource.resource);
+
+    if (youtubeUrl || vimeoUrl) {
+      Alert.alert(
+        "Not Supported",
+        "YouTube and Vimeo videos cannot be downloaded directly. Please use the video URL to watch online."
+      );
+      return;
+    }
+
+    if (isDownloaded) {
+      Alert.alert(
+        "Remove Download",
+        "This resource is already downloaded. Do you want to remove it?",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              const result = await removeDownloadedResource(id);
+              if (result.success) {
+                setIsDownloaded(false);
+                setLocalPath(null);
+                Alert.alert("Success", "Download removed");
+              } else {
+                Alert.alert("Error", "Failed to remove download");
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const result = await downloadResource(
+        id,
+        resource.resource,
+        resource.title || "Resource"
+      );
+
+      if (result.success) {
+        setIsDownloaded(true);
+        setLocalPath(result.localPath);
+        Alert.alert(
+          "Success",
+          result.alreadyExists
+            ? "Resource is already downloaded"
+            : "Resource downloaded successfully! You can now watch it offline."
+        );
+      } else {
+        Alert.alert("Error", result.error || "Failed to download resource");
+      }
+    } catch (error) {
+      console.error("Error downloading:", error);
+      Alert.alert("Error", "Failed to download resource");
+    } finally {
+      setDownloading(false);
+    }
   };
 
-  const handleOpenLink = () => {
-    // Open URL in browser
-    console.log("Opening link:", resource.url);
-    // Linking.openURL(resource.url);
-    alert(`Opening: ${resource.url}`);
+  const handleOpenResource = async () => {
+    if (!resource?.resource) return;
+
+    const resourceType = getResourceType(resource.resource);
+
+    // For videos, use the video player
+    if (resourceType === "video") {
+      handlePlayVideo();
+      return;
+    }
+
+    // For other resources, open in browser
+    try {
+      const canOpen = await Linking.canOpenURL(resource.resource);
+      if (canOpen) {
+        await Linking.openURL(resource.resource);
+      } else {
+        Alert.alert("Error", "Cannot open this URL");
+      }
+    } catch (error) {
+      console.error("Error opening URL:", error);
+      Alert.alert("Error", "Failed to open resource");
+    }
   };
 
-  const handleAssign = () => {
-    // Show assign modal or navigate to assign page
-    setShowAssignModal(true);
-    // router.push(`/resources/${resource.id}/assign`);
-  };
-
-  const handleDownload = () => {
-    // Download resource
-    console.log("Downloading resource:", resource);
-    alert("Downloading resource...");
-  };
-
-  const handleBookmark = () => {
-    // Bookmark resource
-    console.log("Bookmarking resource:", resource);
-    alert("Bookmarking resource...");
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   if (loading) {
     return (
       <BaseLayout showBottomNav={false} backgroundColor="bg-white">
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500 text-base">Loading resource...</Text>
+          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+          <Text className="text-gray-500 text-base mt-4">
+            Loading resource...
+          </Text>
         </View>
       </BaseLayout>
     );
@@ -254,7 +355,8 @@ export default function ResourceDetailsPage() {
     );
   }
 
-  const resourceIcon = getResourceIcon(resource.type);
+  const resourceType = getResourceType(resource.resource);
+  const resourceIcon = getResourceIcon(resourceType);
 
   return (
     <BaseLayout showBottomNav={false} backgroundColor="bg-white">
@@ -269,7 +371,7 @@ export default function ResourceDetailsPage() {
             className="pt-6 px-6 pb-6"
             style={{ backgroundColor: "#6A0DAD" }}
           >
-            <View className="flex-row items-center">
+            <View className="flex-row items-center mb-4">
               <TouchableOpacity
                 onPress={() => router.back()}
                 className="mr-4"
@@ -282,292 +384,268 @@ export default function ResourceDetailsPage() {
                   Resource Details
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={handleBookmark}
-                className="ml-4"
-                activeOpacity={0.7}
+            </View>
+
+            {/* Resource Icon and Title */}
+            <View className="items-center mt-4">
+              <View
+                className="w-16 h-16 rounded-full items-center justify-center mb-3"
+                style={{
+                  backgroundColor: "rgba(255, 255, 255, 0.2)",
+                }}
               >
-                <Ionicons name="bookmark-outline" size={24} color="white" />
-              </TouchableOpacity>
+                <Ionicons name={resourceIcon.name} size={32} color="white" />
+              </View>
+              <Text className="text-2xl font-bold text-white mb-2 text-center">
+                {resource.title || "Untitled Resource"}
+              </Text>
+              {resource.description && (
+                <Text className="text-base text-white opacity-90 text-center mb-3">
+                  {resource.description}
+                </Text>
+              )}
+              {resource.ageMin !== null && resource.ageMax !== null && (
+                <View className="px-3 py-1 bg-white/20 rounded-full">
+                  <Text className="text-sm text-white font-semibold">
+                    Ages {resource.ageMin}-{resource.ageMax}
+                  </Text>
+                </View>
+              )}
             </View>
           </View>
 
-          {/* Resource Content */}
-          <View className="px-0 pb-6">
-            {/* Resource Card */}
+          {/* Content Section */}
+          <View className="px-4 pb-6 -mt-2">
+            {/* Resource Information */}
             <View className="bg-white rounded-xl shadow overflow-hidden mb-4">
+              <View className="px-6 py-4 border-b border-gray-100">
+                <Text className="text-lg font-bold text-gray-900">
+                  Resource Information
+                </Text>
+              </View>
               <View className="p-6">
-                {/* Resource Icon and Title */}
-                <View className="flex-row items-start mb-4">
-                  <View
-                    className="w-16 h-16 rounded-full items-center justify-center mr-4"
-                    style={{ backgroundColor: `${resourceIcon.color}15` }}
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold text-gray-500 mb-1">
+                    Type
+                  </Text>
+                  <View className="flex-row items-center mt-2">
+                    <View
+                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
+                      style={{
+                        backgroundColor: `${resourceIcon.color}15`,
+                      }}
+                    >
+                      <Ionicons
+                        name={resourceIcon.name}
+                        size={20}
+                        color={resourceIcon.color}
+                      />
+                    </View>
+                    <Text className="text-base text-gray-900 capitalize">
+                      {resourceType}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold text-gray-500 mb-1">
+                    Resource URL
+                  </Text>
+                  <Text
+                    className="text-base text-blue-600 mt-2"
+                    numberOfLines={2}
                   >
-                    <Ionicons
-                      name={resourceIcon.name}
-                      size={32}
-                      color={resourceIcon.color}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-2xl font-bold text-gray-900 mb-2">
-                      {resource.title}
-                    </Text>
-                    <View className="flex-row items-center flex-wrap gap-2">
-                      <View className="px-3 py-1 bg-purple-100 rounded-full">
-                        <Text className="text-xs font-semibold text-purple-700">
-                          {resource.category}
-                        </Text>
-                      </View>
-                      <View className="px-3 py-1 bg-blue-100 rounded-full">
-                        <Text className="text-xs font-semibold text-blue-700">
-                          Ages {resource.ageRange.min}-{resource.ageRange.max}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                {/* Description */}
-                <View className="mb-6">
-                  <Text className="text-base text-gray-600 leading-6">
-                    {resource.description}
+                    {resource.resource}
                   </Text>
                 </View>
 
-                {/* Resource Details */}
-                <View className="bg-gray-50 rounded-xl p-4 mb-4">
-                  <Text className="text-sm font-semibold text-gray-700 mb-3">
-                    Resource Information
-                  </Text>
-                  <View className="gap-3">
-                    {resource.fileType && (
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="document-text"
-                            size={18}
-                            color={COLORS.GRAY_500}
-                          />
-                          <Text className="text-sm text-gray-600 ml-2">
-                            File Type
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-900">
-                          {resource.fileType}
-                        </Text>
-                      </View>
-                    )}
-                    {resource.size && (
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="folder"
-                            size={18}
-                            color={COLORS.GRAY_500}
-                          />
-                          <Text className="text-sm text-gray-600 ml-2">
-                            File Size
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-900">
-                          {resource.size}
-                        </Text>
-                      </View>
-                    )}
-                    {resource.duration && (
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="time"
-                            size={18}
-                            color={COLORS.GRAY_500}
-                          />
-                          <Text className="text-sm text-gray-600 ml-2">
-                            Duration
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-900">
-                          {resource.duration}
-                        </Text>
-                      </View>
-                    )}
-                    {resource.pages && (
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="document"
-                            size={18}
-                            color={COLORS.GRAY_500}
-                          />
-                          <Text className="text-sm text-gray-600 ml-2">
-                            Pages
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-900">
-                          {resource.pages}
-                        </Text>
-                      </View>
-                    )}
-                    {resource.resolution && (
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="tv"
-                            size={18}
-                            color={COLORS.GRAY_500}
-                          />
-                          <Text className="text-sm text-gray-600 ml-2">
-                            Resolution
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-900">
-                          {resource.resolution}
-                        </Text>
-                      </View>
-                    )}
-                    {resource.author && (
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="person"
-                            size={18}
-                            color={COLORS.GRAY_500}
-                          />
-                          <Text className="text-sm text-gray-600 ml-2">
-                            Author
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-900">
-                          {resource.author}
-                        </Text>
-                      </View>
-                    )}
-                    {resource.createdAt && (
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-row items-center">
-                          <Ionicons
-                            name="calendar"
-                            size={18}
-                            color={COLORS.GRAY_500}
-                          />
-                          <Text className="text-sm text-gray-600 ml-2">
-                            Created
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-900">
-                          {new Date(resource.createdAt).toLocaleDateString()}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-
-                {/* Tags */}
-                {resource.tags && resource.tags.length > 0 && (
+                {resource.ageMin !== null && resource.ageMax !== null && (
                   <View className="mb-4">
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">
-                      Tags
+                    <Text className="text-sm font-semibold text-gray-500 mb-1">
+                      Age Range
                     </Text>
-                    <View className="flex-row flex-wrap gap-2">
-                      {resource.tags.map((tag, index) => (
-                        <View
-                          key={index}
-                          className="px-3 py-1 bg-gray-100 rounded-full"
-                        >
-                          <Text className="text-xs font-medium text-gray-700">
-                            {tag}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
+                    <Text className="text-base text-gray-900 mt-2">
+                      {resource.ageMin} - {resource.ageMax} years old
+                    </Text>
                   </View>
                 )}
 
-                {/* Action Buttons */}
-                <View className="gap-3">
-                  {resource.type === "document" && (
-                    <TouchableOpacity
-                      onPress={handleReadContent}
-                      activeOpacity={0.7}
-                      className="px-6 py-4 rounded-xl flex-row items-center justify-center"
-                      style={{ backgroundColor: "#3B82F6" }}
-                    >
-                      <Ionicons name="book" size={20} color="white" />
-                      <Text className="text-white font-semibold text-base ml-2">
-                        Read Content
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {resource.type === "video" && (
-                    <TouchableOpacity
-                      onPress={handlePlayVideo}
-                      activeOpacity={0.7}
-                      className="px-6 py-4 rounded-xl flex-row items-center justify-center"
-                      style={{ backgroundColor: "#EF4444" }}
-                    >
-                      <Ionicons name="play" size={20} color="white" />
-                      <Text className="text-white font-semibold text-base ml-2">
-                        Play Video
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {resource.type === "link" && (
-                    <TouchableOpacity
-                      onPress={handleOpenLink}
-                      activeOpacity={0.7}
-                      className="px-6 py-4 rounded-xl flex-row items-center justify-center"
-                      style={{ backgroundColor: "#14B8A6" }}
-                    >
-                      <Ionicons name="open-outline" size={20} color="white" />
-                      <Text className="text-white font-semibold text-base ml-2">
-                        Open Link
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  <View className="flex-row gap-3">
-                    <TouchableOpacity
-                      onPress={handleAssign}
-                      activeOpacity={0.7}
-                      className="flex-1 px-6 py-4 rounded-xl border-2 flex-row items-center justify-center"
-                      style={{ borderColor: COLORS.PRIMARY }}
-                    >
-                      <Ionicons
-                        name="person-add"
-                        size={20}
-                        color={COLORS.PRIMARY}
-                      />
-                      <Text
-                        className="font-semibold text-base ml-2"
-                        style={{ color: COLORS.PRIMARY }}
-                      >
-                        Assign
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={handleDownload}
-                      activeOpacity={0.7}
-                      className="flex-1 px-6 py-4 rounded-xl border-2 border-gray-300 flex-row items-center justify-center"
-                    >
-                      <Ionicons
-                        name="download-outline"
-                        size={20}
-                        color={COLORS.GRAY_600}
-                      />
-                      <Text className="text-gray-700 font-semibold text-base ml-2">
-                        Download
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                <View>
+                  <Text className="text-sm font-semibold text-gray-500 mb-1">
+                    Created At
+                  </Text>
+                  <Text className="text-base text-gray-900 mt-2">
+                    {formatDate(resource.createdAt)}
+                  </Text>
                 </View>
               </View>
             </View>
+
+            {/* Video Player for Videos */}
+            {resourceType === "video" && (
+              <View className="bg-white rounded-xl shadow overflow-hidden mb-4">
+                <View className="px-6 py-4 border-b border-gray-100">
+                  <Text className="text-lg font-bold text-gray-900">
+                    Video Player
+                  </Text>
+                  {isDownloaded && (
+                    <View className="mt-2 flex-row items-center">
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color="#10B981"
+                      />
+                      <Text className="text-sm text-green-600 ml-2">
+                        Available offline
+                      </Text>
+                    </View>
+                  )}
+                  {isYouTubeUrl(resource.resource) && (
+                    <View className="mt-2 flex-row items-center">
+                      <Ionicons
+                        name="information-circle"
+                        size={16}
+                        color={COLORS.PRIMARY}
+                      />
+                      <Text className="text-sm text-purple-600 ml-2">
+                        Will play in-app using YouTube player
+                      </Text>
+                    </View>
+                  )}
+                  {isVimeoUrl(resource.resource) && (
+                    <View className="mt-2 flex-row items-center">
+                      <Ionicons
+                        name="information-circle"
+                        size={16}
+                        color={COLORS.PRIMARY}
+                      />
+                      <Text className="text-sm text-purple-600 ml-2">
+                        Will play in-app using WebView
+                      </Text>
+                    </View>
+                  )}
+                </View>
+                <View className="p-4">
+                  <TouchableOpacity
+                    onPress={handlePlayVideo}
+                    activeOpacity={0.7}
+                    className="bg-purple-600 rounded-xl px-6 py-4 flex-row items-center justify-center shadow-lg"
+                  >
+                    <Ionicons name="play-circle" size={24} color="white" />
+                    <Text className="text-white font-semibold text-base ml-2">
+                      {isDownloaded
+                        ? "Play Offline"
+                        : isYouTubeUrl(resource.resource) ||
+                          isVimeoUrl(resource.resource)
+                        ? "Play Video"
+                        : "Play Video"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Download/Remove Download Button */}
+            {resourceType === "video" && (
+              <TouchableOpacity
+                onPress={handleDownload}
+                disabled={downloading}
+                activeOpacity={0.7}
+                className={`rounded-xl px-6 py-4 flex-row items-center justify-center shadow-lg mb-4 ${
+                  isDownloaded
+                    ? "bg-red-500"
+                    : downloading
+                    ? "bg-gray-400"
+                    : "bg-green-600"
+                }`}
+              >
+                {downloading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Ionicons
+                    name={isDownloaded ? "trash" : "download"}
+                    size={24}
+                    color="white"
+                  />
+                )}
+                <Text className="text-white font-semibold text-base ml-2">
+                  {downloading
+                    ? "Downloading..."
+                    : isDownloaded
+                    ? "Remove Download"
+                    : "Download for Offline"}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Open Resource Button (for non-videos) */}
+            {resourceType !== "video" && (
+              <TouchableOpacity
+                onPress={handleOpenResource}
+                activeOpacity={0.7}
+                className="bg-purple-600 rounded-xl px-6 py-4 flex-row items-center justify-center shadow-lg mb-4"
+              >
+                <Ionicons
+                  name={
+                    resourceType === "document"
+                      ? "document-text"
+                      : "open-outline"
+                  }
+                  size={24}
+                  color="white"
+                />
+                <Text className="text-white font-semibold text-base ml-2">
+                  {resourceType === "document" ? "Open Document" : "Open Link"}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       </View>
+
+      {/* Video Player Modal (for direct video URLs) */}
+      <Modal
+        visible={showVideoPlayer}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowVideoPlayer(false)}
+      >
+        <View className="flex-1 bg-black">
+          <VideoPlayer
+            uri={videoUri}
+            onClose={() => setShowVideoPlayer(false)}
+          />
+        </View>
+      </Modal>
+
+      {/* YouTube Player Modal */}
+      <Modal
+        visible={showYouTubePlayer}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowYouTubePlayer(false)}
+      >
+        <View className="flex-1 bg-black">
+          <YouTubePlayer
+            videoId={youtubeVideoId}
+            onClose={() => setShowYouTubePlayer(false)}
+          />
+        </View>
+      </Modal>
+
+      {/* WebView Player Modal (for Vimeo) */}
+      <Modal
+        visible={showWebViewPlayer}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowWebViewPlayer(false)}
+      >
+        <WebViewPlayer
+          uri={webViewUri}
+          onClose={() => setShowWebViewPlayer(false)}
+          isVimeo={isVimeo}
+        />
+      </Modal>
     </BaseLayout>
   );
 }

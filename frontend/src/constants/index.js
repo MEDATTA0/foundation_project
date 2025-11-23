@@ -32,6 +32,16 @@ export const API_ENDPOINTS = {
     LIST: "/enrollments",
     DELETE: (id) => `/enrollments/${id}`,
   },
+  RESOURCES: {
+    // Get all resources for teacher (across all classes) - no classId needed
+    LIST: "/resources",
+    // Class-specific resources
+    LIST_BY_CLASS: (classId) => `/classes/${classId}/resources`,
+    CREATE: (classId) => `/classes/${classId}/resources`,
+    GET: (classId, id) => `/classes/${classId}/resources/${id}`,
+    UPDATE: (classId, id) => `/classes/${classId}/resources/${id}`,
+    DELETE: (classId, id) => `/classes/${classId}/resources/${id}`,
+  },
 };
 
 // App Configuration

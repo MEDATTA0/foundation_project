@@ -14,3 +14,6 @@ export { SettingsItem } from "./SettingsItem";
 export { QuizItem } from "./QuizItem";
 export { QuizHeader } from "./QuizHeader";
 export { StudentsListComponent } from "./StudentsListComponent";
+export { VideoPlayer } from "./VideoPlayer";
+export { WebViewPlayer } from "./WebViewPlayer";
+export { YouTubePlayer } from "./YouTubePlayer";

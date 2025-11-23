@@ -14,10 +14,38 @@ export class Resource {
   classId: string;
 
   @ApiProperty({
-    description: 'Resource content',
+    description: 'Resource title',
+    example: 'Basic Counting Course',
+    required: false,
+  })
+  title?: string;
+
+  @ApiProperty({
+    description: 'Resource description',
+    example: 'Learn numbers 1-10 with fun activities',
+    required: false,
+  })
+  description?: string;
+
+  @ApiProperty({
+    description: 'Resource URL',
     example: 'https://example.com/textbook.pdf',
   })
   resource: string;
+
+  @ApiProperty({
+    description: 'Minimum age',
+    example: 4,
+    required: false,
+  })
+  ageMin?: number;
+
+  @ApiProperty({
+    description: 'Maximum age',
+    example: 6,
+    required: false,
+  })
+  ageMax?: number;
 
   @ApiProperty({
     description: 'Creation date',

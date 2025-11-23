@@ -4,14 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { BaseLayout } from "../components/layout";
 import { BottomNavigation } from "../components/navigation";
-import { NAVIGATION_TABS, COLORS } from "../constants";
+import { NAVIGATION_TABS, COLORS, API_ENDPOINTS } from "../constants";
+import { api } from "../services/api";
+import { useAuthStore } from "../stores";
 
-/**
- * Resources Page
- * For teachers to filter resources by age range and assign courses to children
- */
 export default function ResourcesPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
 
   // Age range filter options
   const ageRanges = [
@@ -21,7 +20,7 @@ export default function ResourcesPage() {
     { id: "11-14", label: "11-14", min: 11, max: 14 },
   ];
 
-  const [selectedAgeRange, setSelectedAgeRange] = useState(ageRanges[1]);
+  const [selectedAgeRange, setSelectedAgeRange] = useState(ageRanges[0]);
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -123,29 +122,72 @@ export default function ResourcesPage() {
   // Fetch resources from backend
   useEffect(() => {
     const fetchResources = async () => {
+      if (!isAuthenticated) return;
+
       setLoading(true);
       try {
-        // TODO: Replace with actual API call
-        // const response = await api.get('/resources');
-        // setResources(response.data);
+        // Fetch all resources for the teacher (across all classes)
+        const data = await api.get(API_ENDPOINTS.RESOURCES.LIST);
 
-        // Using mock data for now
-        setResources(mockResources);
+        // Transform backend data to match frontend expectations
+        // Backend returns: { id, classId, title, description, resource (URL string), ageMin, ageMax, ageRange, createdAt, updatedAt, class: { id, name } }
+        const transformedResources = data.map((item) => {
+          // Determine resource type from URL
+          const url = item.resource;
+          let type = "link";
+          if (
+            url.match(/\.(pdf|doc|docx)$/i) ||
+            url.includes("drive.google.com") ||
+            url.includes("dropbox.com")
+          )
+            type = "document";
+          else if (
+            url.match(/\.(mp4|avi|mov)$/i) ||
+            url.includes("youtube.com") ||
+            url.includes("youtu.be") ||
+            url.includes("vimeo.com")
+          )
+            type = "video";
+          else if (url.match(/\.(jpg|jpeg|png|gif)$/i)) type = "image";
+
+          return {
+            id: item.id,
+            title: item.title || item.resource.split("/").pop() || "Resource",
+            description:
+              item.description ||
+              `Resource from ${item.class?.name || "Unknown Class"}`,
+            type: type,
+            url: item.resource,
+            classId: item.classId,
+            className: item.class?.name || "Unknown",
+            ageRange:
+              item.ageRange ||
+              (item.ageMin !== null && item.ageMax !== null
+                ? { min: item.ageMin, max: item.ageMax }
+                : null),
+            createdAt: item.createdAt,
+          };
+        });
+
+        setResources(transformedResources);
       } catch (error) {
         console.error("Error fetching resources:", error);
+        // Fallback to empty array on error
+        setResources([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchResources();
-  }, []);
+  }, [isAuthenticated]);
 
   // Filter resources based on selected age range
   const filteredResources =
     selectedAgeRange.id === "all"
       ? resources
       : resources.filter((resource) => {
+          if (!resource.ageRange) return false; // Exclude resources without age range
           // Check if resource age range overlaps with selected filter range
           return (
             resource.ageRange.min <= selectedAgeRange.max &&
@@ -182,16 +224,33 @@ export default function ResourcesPage() {
     setSelectedAgeRange(ageRange);
   };
 
-  const handleAssignResource = (resource) => {
-    // Navigate to assignment screen or show modal to select children
-    console.log("Assign resource:", resource);
-    // TODO: Navigate to assignment screen
-    // router.push(`/resources/${resource.id}/assign`);
+  const handleRemoveResource = (resource) => {
+    Alert.alert(
+      "Remove Resource",
+      "Are you sure you want to remove this resource?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            console.log("Remove resource:", resource);
+          },
+        },
+      ]
+    );
   };
 
   const handleViewResource = (resource) => {
-    // Navigate to resource details page
-    router.push(`/resources/${resource.id}`);
+    // Navigate to resource details page with classId
+    router.push({
+      pathname: `/resources/${resource.id}`,
+      params: { classId: resource.classId },
+    });
+  };
+
+  const handleCreateResource = () => {
+    router.push("/resources/create");
   };
 
   return (
@@ -217,6 +276,18 @@ export default function ResourcesPage() {
             <Text className="text-lg text-white opacity-90 mb-4">
               Filter by age range and assign courses to children
             </Text>
+
+            {/* Create Resource Button */}
+            <TouchableOpacity
+              onPress={handleCreateResource}
+              activeOpacity={0.7}
+              className="bg-white rounded-full px-6 py-3 flex-row items-center justify-center mb-4 shadow-lg"
+            >
+              <Ionicons name="add-circle" size={24} color="#6A0DAD" />
+              <Text className="text-purple-600 font-semibold text-base ml-2">
+                Create Resource
+              </Text>
+            </TouchableOpacity>
 
             {/* Age Range Filter Chips */}
             <ScrollView
@@ -389,7 +460,7 @@ export default function ResourcesPage() {
                                         : "View"}
                                     </Text>
                                   </TouchableOpacity>
-                                  <TouchableOpacity
+                                  {/* <TouchableOpacity
                                     onPress={() =>
                                       handleAssignResource(resource)
                                     }
@@ -404,6 +475,27 @@ export default function ResourcesPage() {
                                     />
                                     <Text className="text-white font-semibold text-sm ml-2">
                                       Assign
+                                    </Text>
+                                  </TouchableOpacity> */}
+                                  <TouchableOpacity
+                                    onPress={() =>
+                                      handleRemoveResource(resource)
+                                    }
+                                    activeOpacity={0.7}
+                                    className="flex-1 px-4 py-2 rounded-lg flex-row items-center justify-center"
+                                    style={{
+                                      backgroundColor: "white",
+                                      borderWidth: 1,
+                                      borderColor: "#EF4444",
+                                    }}
+                                  >
+                                    <Ionicons
+                                      name="trash"
+                                      size={18}
+                                      color="#EF4444"
+                                    />
+                                    <Text className="text-red-500 font-semibold text-sm ml-2">
+                                      Remove
                                     </Text>
                                   </TouchableOpacity>
                                 </View>
