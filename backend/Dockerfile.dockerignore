@@ -1,0 +1,28 @@
+node_modules/
+dist/
+
+# Prisma generated folder
+generated/prisma
+
+**/*.tf
+
+# Terraform state files
+*.tfstate
+*.tfstate.*backup
+
+# Terraform local configuration
+.terraform/
+.terraformrc
+terraform.rc
+*.tfplan
+
+# Terraform variable files (sensitive data)
+*.tfvars
+*.tfvars.json
+
+# Crash log files
+crash.log
+
+# Ansible configuration files
+*.ansible.yaml
+inventory.tpl
