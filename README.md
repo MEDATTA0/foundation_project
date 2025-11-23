@@ -15,7 +15,7 @@ foundation_project/
 
 ### Prerequisites
 
-Before running the frontend, make sure you have the following installed:
+Before running the frontend, make sure you have the following installed on your device:
 
 - **Node.js** (v18 or higher recommended)
 - **npm** or **yarn** package manager
@@ -165,8 +165,8 @@ For more details on the frontend structure, see `frontend/STRUCTURE.md`.
 ###Contributors
 .Nkem Nweke
 .Ibrahim Maazou Djahadi
-.Kevin Nyawakira
 .Thomas Odongo
+.Kevin Nyawakira
 .Yusuf Nabide
 
 ## Contributing
