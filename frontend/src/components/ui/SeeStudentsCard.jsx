@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "../../constants";
 
-export function SeeClassroomsCard({
+export function SeeStudentsCard({
   onPress,
-  description = "View and manage all your classrooms",
+  description = "Click to create a new student profile",
 }) {
   return (
     <TouchableOpacity
@@ -15,9 +15,7 @@ export function SeeClassroomsCard({
       className="rounded-2xl p-5 mb-4 flex-row items-center justify-between"
     >
       <View className="flex-1">
-        <Text className="text-white text-xl font-bold mb-1">
-          See Classrooms
-        </Text>
+        <Text className="text-white text-xl font-bold mb-1">See Students</Text>
         <Text className="text-white text-sm opacity-90">{description}</Text>
       </View>
 

@@ -10,13 +10,25 @@ export class AppService {
   }
 
   async dashboard(currentUserId: string) {
+    // Find or create the teacher record for this user
+    let teacher = await this.prisma.teacher.findFirst({
+      where: { userId: currentUserId },
+    });
+
+    // If teacher doesn't exist, create it
+    if (!teacher) {
+      teacher = await this.prisma.teacher.create({
+        data: { userId: currentUserId },
+      });
+    }
+
     const classes = await this.prisma.class.findMany({
-      where: { teacherId: currentUserId },
+      where: { teacherId: teacher.id },
       select: { id: true },
     });
     const classIds = classes.map((cls) => cls.id);
     const [students, resources, classSessions] = await Promise.all([
-      this.prisma.teacherStudent.count({ where: { teacherId: currentUserId } }),
+      this.prisma.teacherStudent.count({ where: { teacherId: teacher.id } }),
       this.prisma.resource.count({ where: { classId: { in: classIds } } }),
       this.prisma.classSession.findMany({
         where: { classId: { in: classIds } },

@@ -92,13 +92,13 @@ export default function SettingsPage() {
                 />
 
                 {/* Phone Number */}
-                <SettingsItem
+                {/* <SettingsItem
                   icon="call"
                   iconColor="#14B8A6"
                   label="Phone Number"
                   value={userData.phoneNumber}
                   onPress={() => handleEditField("phoneNumber")}
-                />
+                /> */}
 
                 {/* Email Id */}
                 <SettingsItem

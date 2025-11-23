@@ -1,7 +1,7 @@
 export { Button } from "./Button";
 export { ProfileHeader } from "./ProfileHeader";
 export { WelcomeBanner } from "./WelcomeBanner";
-export { SeeClassroomsCard } from "./SeeClassroomsCard";
+export { SeeStudentsCard } from "./SeeStudentsCard";
 export { StatCard } from "./StatCard";
 export { StatisticsGrid } from "./StatisticsGrid";
 export { GradientBackground } from "./GradientBackground";

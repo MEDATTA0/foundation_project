@@ -6,395 +6,14 @@ import {
   TouchableOpacity,
   Modal,
   TextInput,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { BaseLayout } from "../../components/layout";
-import { COLORS } from "../../constants";
-
-// Mock student data - to be replaced with actual API call
-const mockStudentsData = {
-  1: {
-    id: 1,
-    name: "Emma Watsonn",
-    age: 5,
-    birthDate: "2019-03-15",
-    email: "emma.watson@example.com",
-    phone: "+1234567890",
-    address: "123 Main Street, City",
-    enrollmentDate: "2024-01-10",
-    attendancePercentage: 92.5,
-    enrolledClasses: [
-      {
-        id: "class1",
-        name: "Humanitarian Learning",
-        enrollmentDate: "2024-01-10",
-        status: "active",
-      },
-    ],
-  },
-  2: {
-    id: 2,
-    name: "Oliver Smith",
-    age: 6,
-    birthDate: "2018-05-20",
-    email: "oliver.smith@example.com",
-    phone: "+1234567891",
-    address: "456 Oak Avenue, City",
-    enrollmentDate: "2024-01-12",
-    attendancePercentage: 88.3,
-    enrolledClasses: [
-      {
-        id: "class1",
-        name: "Humanitarian Learning",
-        enrollmentDate: "2024-01-12",
-        status: "active",
-      },
-    ],
-  },
-  3: {
-    id: 3,
-    name: "Sophia Johnson",
-    age: 5,
-    birthDate: "2019-07-08",
-    email: "sophia.johnson@example.com",
-    phone: "+1234567892",
-    address: "789 Pine Road, City",
-    enrollmentDate: "2024-01-15",
-    attendancePercentage: 95.0,
-    enrolledClasses: [
-      {
-        id: "class2",
-        name: "Introduction to Technology",
-        enrollmentDate: "2024-01-15",
-        status: "active",
-      },
-    ],
-  },
-  4: {
-    id: 4,
-    name: "Liam Brown",
-    age: 6,
-    birthDate: "2018-09-12",
-    email: "liam.brown@example.com",
-    phone: "+1234567893",
-    address: "321 Elm Street, City",
-    enrollmentDate: "2024-01-18",
-    attendancePercentage: 90.2,
-    enrolledClasses: [
-      {
-        id: "class2",
-        name: "Introduction to Technology",
-        enrollmentDate: "2024-01-18",
-        status: "active",
-      },
-    ],
-  },
-  5: {
-    id: 5,
-    name: "Ava Davis",
-    age: 5,
-    birthDate: "2019-11-25",
-    email: "ava.davis@example.com",
-    phone: "+1234567894",
-    address: "654 Maple Drive, City",
-    enrollmentDate: "2024-02-01",
-    attendancePercentage: 87.5,
-    enrolledClasses: [
-      {
-        id: "class3",
-        name: "Basic Computer Skills",
-        enrollmentDate: "2024-02-01",
-        status: "active",
-      },
-    ],
-  },
-  6: {
-    id: 6,
-    name: "Noah Wilson",
-    age: 6,
-    birthDate: "2018-01-30",
-    email: "noah.wilson@example.com",
-    phone: "+1234567895",
-    address: "987 Cedar Lane, City",
-    enrollmentDate: "2024-02-05",
-    attendancePercentage: 93.8,
-    enrolledClasses: [
-      {
-        id: "class3",
-        name: "Basic Computer Skills",
-        enrollmentDate: "2024-02-05",
-        status: "active",
-      },
-    ],
-  },
-  7: {
-    id: 7,
-    name: "Isabella Martinez",
-    age: 5,
-    birthDate: "2019-04-18",
-    email: "isabella.martinez@example.com",
-    phone: "+1234567896",
-    address: "147 Birch Court, City",
-    enrollmentDate: "2024-02-10",
-    attendancePercentage: 91.2,
-    enrolledClasses: [
-      {
-        id: "class4",
-        name: "Basic English",
-        enrollmentDate: "2024-02-10",
-        status: "active",
-      },
-    ],
-  },
-  8: {
-    id: 8,
-    name: "Ethan Anderson",
-    age: 6,
-    birthDate: "2018-06-22",
-    email: "ethan.anderson@example.com",
-    phone: "+1234567897",
-    address: "258 Spruce Way, City",
-    enrollmentDate: "2024-02-12",
-    attendancePercentage: 89.6,
-    enrolledClasses: [
-      {
-        id: "class4",
-        name: "Basic English",
-        enrollmentDate: "2024-02-12",
-        status: "active",
-      },
-    ],
-  },
-  9: {
-    id: 9,
-    name: "Mia Thompson",
-    age: 5,
-    birthDate: "2019-08-14",
-    email: "mia.thompson@example.com",
-    phone: "+1234567898",
-    address: "369 Willow Street, City",
-    enrollmentDate: "2024-01-10",
-    attendancePercentage: 94.5,
-    enrolledClasses: [
-      {
-        id: "class1",
-        name: "Humanitarian Learning",
-        enrollmentDate: "2024-01-10",
-        status: "active",
-      },
-    ],
-  },
-  10: {
-    id: 10,
-    name: "James Wilson",
-    age: 6,
-    birthDate: "2018-10-05",
-    email: "james.wilson@example.com",
-    phone: "+1234567899",
-    address: "741 Ash Avenue, City",
-    enrollmentDate: "2024-01-15",
-    attendancePercentage: 86.7,
-    enrolledClasses: [
-      {
-        id: "class2",
-        name: "Introduction to Technology",
-        enrollmentDate: "2024-01-15",
-        status: "active",
-      },
-    ],
-  },
-  11: {
-    id: 11,
-    name: "Charlotte Lee",
-    age: 5,
-    birthDate: "2019-12-17",
-    email: "charlotte.lee@example.com",
-    phone: "+1234567900",
-    address: "852 Poplar Road, City",
-    enrollmentDate: "2024-02-01",
-    attendancePercentage: 92.1,
-    enrolledClasses: [
-      {
-        id: "class3",
-        name: "Basic Computer Skills",
-        enrollmentDate: "2024-02-01",
-        status: "active",
-      },
-    ],
-  },
-  12: {
-    id: 12,
-    name: "Benjamin Taylor",
-    age: 6,
-    birthDate: "2018-02-28",
-    email: "benjamin.taylor@example.com",
-    phone: "+1234567901",
-    address: "963 Fir Circle, City",
-    enrollmentDate: "2024-02-10",
-    attendancePercentage: 88.9,
-    enrolledClasses: [
-      {
-        id: "class4",
-        name: "Basic English",
-        enrollmentDate: "2024-02-10",
-        status: "active",
-      },
-    ],
-  },
-  13: {
-    id: 13,
-    name: "Amelia White",
-    age: 5,
-    birthDate: "2019-05-11",
-    email: "amelia.white@example.com",
-    phone: "+1234567902",
-    address: "159 Hemlock Drive, City",
-    enrollmentDate: "2024-01-10",
-    attendancePercentage: 96.3,
-    enrolledClasses: [
-      {
-        id: "class1",
-        name: "Humanitarian Learning",
-        enrollmentDate: "2024-01-10",
-        status: "active",
-      },
-    ],
-  },
-  14: {
-    id: 14,
-    name: "Lucas Harris",
-    age: 6,
-    birthDate: "2018-07-23",
-    email: "lucas.harris@example.com",
-    phone: "+1234567903",
-    address: "357 Cypress Lane, City",
-    enrollmentDate: "2024-01-15",
-    attendancePercentage: 91.7,
-    enrolledClasses: [
-      {
-        id: "class2",
-        name: "Introduction to Technology",
-        enrollmentDate: "2024-01-15",
-        status: "active",
-      },
-    ],
-  },
-  15: {
-    id: 15,
-    name: "Harper Clark",
-    age: 5,
-    birthDate: "2019-09-04",
-    email: "harper.clark@example.com",
-    phone: "+1234567904",
-    address: "468 Redwood Street, City",
-    enrollmentDate: "2024-02-01",
-    attendancePercentage: 89.4,
-    enrolledClasses: [
-      {
-        id: "class3",
-        name: "Basic Computer Skills",
-        enrollmentDate: "2024-02-01",
-        status: "active",
-      },
-    ],
-  },
-  16: {
-    id: 16,
-    name: "Alexander Lewis",
-    age: 6,
-    birthDate: "2018-11-16",
-    email: "alexander.lewis@example.com",
-    phone: "+1234567905",
-    address: "579 Sequoia Avenue, City",
-    enrollmentDate: "2024-02-10",
-    attendancePercentage: 93.2,
-    enrolledClasses: [
-      {
-        id: "class4",
-        name: "Basic English",
-        enrollmentDate: "2024-02-10",
-        status: "active",
-      },
-    ],
-  },
-  17: {
-    id: 17,
-    name: "Evelyn Walker",
-    age: 5,
-    birthDate: "2019-01-27",
-    email: "evelyn.walker@example.com",
-    phone: "+1234567906",
-    address: "680 Magnolia Court, City",
-    enrollmentDate: "2024-01-10",
-    attendancePercentage: 90.8,
-    enrolledClasses: [
-      {
-        id: "class1",
-        name: "Humanitarian Learning",
-        enrollmentDate: "2024-01-10",
-        status: "active",
-      },
-    ],
-  },
-  18: {
-    id: 18,
-    name: "Daniel Hall",
-    age: 6,
-    birthDate: "2018-03-09",
-    email: "daniel.hall@example.com",
-    phone: "+1234567907",
-    address: "791 Dogwood Way, City",
-    enrollmentDate: "2024-01-15",
-    attendancePercentage: 87.3,
-    enrolledClasses: [
-      {
-        id: "class2",
-        name: "Introduction to Technology",
-        enrollmentDate: "2024-01-15",
-        status: "active",
-      },
-    ],
-  },
-  19: {
-    id: 19,
-    name: "Abigail Young",
-    age: 5,
-    birthDate: "2019-06-21",
-    email: "abigail.young@example.com",
-    phone: "+1234567908",
-    address: "802 Sycamore Road, City",
-    enrollmentDate: "2024-02-01",
-    attendancePercentage: 94.1,
-    enrolledClasses: [
-      {
-        id: "class3",
-        name: "Basic Computer Skills",
-        enrollmentDate: "2024-02-01",
-        status: "active",
-      },
-    ],
-  },
-  20: {
-    id: 20,
-    name: "Matthew King",
-    age: 6,
-    birthDate: "2018-08-13",
-    email: "matthew.king@example.com",
-    phone: "+1234567909",
-    address: "913 Chestnut Drive, City",
-    enrollmentDate: "2024-02-10",
-    attendancePercentage: 92.6,
-    enrolledClasses: [
-      {
-        id: "class4",
-        name: "Basic English",
-        enrollmentDate: "2024-02-10",
-        status: "active",
-      },
-    ],
-  },
-};
+import { COLORS, API_ENDPOINTS } from "../../constants";
+import { api } from "../../services/api";
 
 export default function StudentDetailsPage() {
   const router = useRouter();
@@ -407,64 +26,107 @@ export default function StudentDetailsPage() {
     birthDate: "",
   });
 
+  // Calculate age from birth date
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birth.getDate())
+    ) {
+      age--;
+    }
+    return age;
+  };
+
+  // Format date from API to YYYY-MM-DD format
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   // Fetch student data
   useEffect(() => {
     const fetchStudentData = async () => {
+      if (!id) return;
+
       setLoading(true);
       try {
-        // TODO: Replace with actual API call
-        // const response = await api.get(`/students/${id}`);
-        // setStudent(response.data);
+        const data = await api.get(API_ENDPOINTS.STUDENTS.GET(id));
 
-        // Using mock data
-        const studentData = mockStudentsData[parseInt(id)];
-        if (studentData) {
-          setStudent(studentData);
-          setEditForm({
-            name: studentData.name,
-            birthDate: studentData.birthDate,
-          });
-        }
+        // Transform API response to match UI expectations
+        const transformedStudent = {
+          id: data.id,
+          name: data.name,
+          birthDate: formatDateForInput(data.birthDate),
+          age: calculateAge(data.birthDate),
+          email: "", // Not in API response
+          phone: "", // Not in API response
+          address: "", // Not in API response
+          enrollmentDate: formatDateForInput(data.createdAt),
+          attendancePercentage:
+            data.total > 0
+              ? Math.round((data.attendance / data.total) * 100 * 10) / 10
+              : 0,
+          enrolledClasses:
+            data.Enrollment?.map((enrollment) => ({
+              id: enrollment.classId,
+              name: enrollment.class?.name || "Unknown Class",
+              enrollmentDate: formatDateForInput(enrollment.createdAt),
+              status: "active",
+            })) || [],
+          attendance: data.attendance || 0,
+          total: data.total || 0,
+        };
+
+        setStudent(transformedStudent);
+        setEditForm({
+          name: transformedStudent.name,
+          birthDate: transformedStudent.birthDate,
+        });
       } catch (error) {
         console.error("Error fetching student data:", error);
+        Alert.alert("Error", error.message || "Failed to load student details");
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) {
-      fetchStudentData();
-    }
+    fetchStudentData();
   }, [id]);
 
   const handleEditProfile = () => {
     setShowEditModal(true);
   };
 
-  const handleSaveProfile = () => {
-    // TODO: Replace with actual API call
-    // await api.put(`/students/${id}`, editForm);
-    console.log("Saving profile:", editForm);
+  const handleSaveProfile = async () => {
+    try {
+      // Update student via API
+      await api.patch(API_ENDPOINTS.STUDENTS.UPDATE(id), {
+        name: editForm.name,
+        birthDate: editForm.birthDate,
+      });
 
-    // Calculate age from birthDate
-    const birthDate = new Date(editForm.birthDate);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
+      // Update local state
+      const updatedAge = calculateAge(editForm.birthDate);
+      setStudent({
+        ...student,
+        ...editForm,
+        age: updatedAge,
+      });
+      setShowEditModal(false);
+      Alert.alert("Success", "Student profile updated successfully");
+    } catch (error) {
+      console.error("Error updating student:", error);
+      Alert.alert("Error", error.message || "Failed to update student profile");
     }
-
-    // Update local state
-    setStudent({
-      ...student,
-      ...editForm,
-      age: age,
-    });
-    setShowEditModal(false);
   };
 
   const handleCancelEdit = () => {
@@ -494,7 +156,10 @@ export default function StudentDetailsPage() {
     return (
       <BaseLayout showBottomNav={false} backgroundColor="bg-white">
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500 text-base">Loading student...</Text>
+          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+          <Text className="text-gray-500 text-base mt-4">
+            Loading student...
+          </Text>
         </View>
       </BaseLayout>
     );

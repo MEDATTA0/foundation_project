@@ -57,7 +57,7 @@ model Account {
 model Session {
     id        String   @id
     userId    String   @map("user_id")
-    token     String
+    token     String   @unique
     expiresAt DateTime @map("expires_at")
     ipAddress String?  @map("ip_address")
     userAgent String?  @map("user_agent")
@@ -94,13 +94,16 @@ model Teacher {
 }
 
 model Class {
-    id        String    @id @default(cuid())
-    name      String
-    startDate DateTime  @map("start_date")
-    endDate   DateTime? @map("end_date")
-    teacherId String    @map("teacher_id")
-    createdAt DateTime  @default(now()) @map("created_at")
-    updatedAt DateTime  @updatedAt @map("updated_at")
+    id          String    @id @default(cuid())
+    name        String
+    description String?
+    startDate   DateTime  @map("start_date")
+    endDate     DateTime? @map("end_date")
+    ageMin      Int?      @map("age_min")
+    ageMax      Int?      @map("age_max")
+    teacherId   String    @map("teacher_id")
+    createdAt   DateTime  @default(now()) @map("created_at")
+    updatedAt   DateTime  @updatedAt @map("updated_at")
 
     teacher      Teacher      @relation(fields: [teacherId], references: [id])
     Enrollment   Enrollment[]

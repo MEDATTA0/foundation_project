@@ -1,27 +1,32 @@
 import React from "react";
 import { View } from "react-native";
 import { StatCard } from "./StatCard";
+import { useAppStore } from "../../stores/appStore";
 
 export function StatisticsGrid() {
+  const { dashboard } = useAppStore();
+
   const stats = [
     {
       label: "Total Student",
-      value: "47 Pupils",
+      value: `${dashboard.students} ${
+        dashboard.students === 1 ? "Pupil" : "Pupils"
+      }`,
       icon: "📖",
     },
     {
       label: "Available resources",
-      value: "21",
+      value: `${dashboard.resources}`,
       icon: "📁",
     },
     {
       label: "No. of Classroom",
-      value: "5",
+      value: `${dashboard.classrooms}`,
       icon: "📋",
     },
     {
       label: "Downloaded Files",
-      value: "10 files",
+      value: "0 files", // I will add this later
       icon: "📥",
     },
   ];

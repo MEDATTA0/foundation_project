@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 /**
  * Application Store
- * Manages global application state (theme, notifications, etc.)
+ * Manages global application state (theme, notifications, dashboard, etc.)
  */
 export const useAppStore = create((set, get) => ({
   // State
@@ -10,6 +10,17 @@ export const useAppStore = create((set, get) => ({
   isLoading: false,
   error: null,
   notifications: [],
+  dashboard: {
+    students: 0,
+    resources: 0,
+    classrooms: 0,
+    recentSessions: [],
+  },
+  isDashboardLoading: false,
+  dashboardError: null,
+  students: [],
+  isStudentsLoading: false,
+  studentsError: null,
 
   // Actions
   setTheme: (theme) => set({ theme }),
@@ -29,4 +40,16 @@ export const useAppStore = create((set, get) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     })),
   clearNotifications: () => set({ notifications: [] }),
+
+  // Dashboard Actions
+  setDashboard: (dashboardData) => set({ dashboard: dashboardData }),
+  setDashboardLoading: (isLoading) => set({ isDashboardLoading: isLoading }),
+  setDashboardError: (error) => set({ dashboardError: error }),
+  clearDashboardError: () => set({ dashboardError: null }),
+
+  // Students Actions
+  setStudents: (studentsData) => set({ students: studentsData }),
+  setStudentsLoading: (isLoading) => set({ isStudentsLoading: isLoading }),
+  setStudentsError: (error) => set({ studentsError: error }),
+  clearStudentsError: () => set({ studentsError: null }),
 }));

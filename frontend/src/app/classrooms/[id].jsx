@@ -4,176 +4,244 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Alert,
   Modal,
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { BaseLayout } from "../../components/layout";
-import { BottomNavigation } from "../../components/navigation";
-import { NAVIGATION_TABS, COLORS } from "../../constants";
+import { COLORS, API_ENDPOINTS } from "../../constants";
+import { api } from "../../services/api";
+import { useAuthStore } from "../../stores";
 
 export default function ClassroomDetailsPage() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { isAuthenticated } = useAuthStore();
   const [classroom, setClassroom] = useState(null);
-  const [students, setStudents] = useState([]);
-  const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview"); // overview, students, resources
-  const [selectedResource, setSelectedResource] = useState(null);
-  const [showResourceModal, setShowResourceModal] = useState(false);
 
-  // Mock classroom data - to be replaced with actual API call
-  const mockClassroom = {
-    id: id || "class1",
-    name: "Humanitarian Learning",
-    description:
-      "Introduction to humanitarian values and empathy. This course helps children understand the importance of kindness, compassion, and helping others.",
-    ageRange: { min: 4, max: 6 },
-    studentCount: 5,
-    resourceCount: 8,
-    teacherName: "Ms. Sarah Johnson",
-    createdAt: "2024-01-15",
+  // Student enrollment state
+  const [students, setStudents] = useState([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [showStudentModal, setShowStudentModal] = useState(false);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [removingEnrollmentId, setRemovingEnrollmentId] = useState(null);
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
-  const mockStudents = [
-    { id: 1, name: "Emma Watson", age: 5, avatar: "👧" },
-    { id: 2, name: "Oliver Smith", age: 6, avatar: "👦" },
-    { id: 3, name: "Sophia Johnson", age: 5, avatar: "👧" },
-    { id: 4, name: "Liam Brown", age: 6, avatar: "👦" },
-    { id: 5, name: "Mia Thompson", age: 5, avatar: "👧" },
-  ];
+  // Calculate age from birth date
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birth.getDate())
+    ) {
+      age--;
+    }
+    return age;
+  };
 
-  const mockResources = [
-    {
-      id: 1,
-      title: "Basic Counting Course",
-      description: "Learn numbers 1-10 with fun activities",
-      type: "document",
-      category: "Mathematics",
-      ageRange: { min: 4, max: 6 },
-      fileType: "PDF",
-      size: "2.4 MB",
-      duration: "15 min read",
-    },
-    {
-      id: 2,
-      title: "Alphabet Adventure",
-      description: "Interactive alphabet learning video",
-      type: "video",
-      category: "Language",
-      ageRange: { min: 4, max: 6 },
-      fileType: "MP4",
-      size: "125 MB",
-      duration: "10 min",
-    },
-    {
-      id: 3,
-      title: "Sharing is Caring",
-      description: "Story about sharing and kindness",
-      type: "document",
-      category: "Social Skills",
-      ageRange: { min: 4, max: 6 },
-      fileType: "PDF",
-      size: "1.8 MB",
-      duration: "8 min read",
-    },
-    {
-      id: 4,
-      title: "Colors of the Rainbow",
-      description: "Learn colors through songs and activities",
-      type: "video",
-      category: "Arts",
-      ageRange: { min: 4, max: 6 },
-      fileType: "MP4",
-      size: "98 MB",
-      duration: "12 min",
-    },
-  ];
-
-  // Fetch classroom data
-  useEffect(() => {
-    const fetchClassroomData = async () => {
-      setLoading(true);
-      try {
-        // TODO: Replace with actual API calls
-        // const classroomResponse = await api.get(`/classrooms/${id}`);
-        // const studentsResponse = await api.get(`/classrooms/${id}/students`);
-        // const resourcesResponse = await api.get(`/classrooms/${id}/resources`);
-        // setClassroom(classroomResponse.data);
-        // setStudents(studentsResponse.data);
-        // setResources(resourcesResponse.data);
-
-        // Using mock data
-        setClassroom(mockClassroom);
-        setStudents(mockStudents);
-        setResources(mockResources);
-      } catch (error) {
-        console.error("Error fetching classroom data:", error);
-      } finally {
-        setLoading(false);
+  // Toggle student selection
+  const handleStudentToggle = (studentId) => {
+    setSelectedStudentIds((prev) => {
+      if (prev.includes(studentId)) {
+        return prev.filter((id) => id !== studentId);
+      } else {
+        return [...prev, studentId];
       }
-    };
+    });
+  };
 
-    fetchClassroomData();
-  }, [id]);
+  // Enroll selected students
+  const handleEnrollStudents = async () => {
+    if (selectedStudentIds.length === 0) {
+      Alert.alert("Error", "Please select at least one student");
+      return;
+    }
 
-  const getResourceIcon = (type) => {
-    switch (type) {
-      case "document":
-        return { name: "document-text", color: "#3B82F6" };
-      case "video":
-        return { name: "videocam", color: "#EF4444" };
-      case "link":
-        return { name: "link", color: "#14B8A6" };
-      case "image":
-        return { name: "images", color: "#F97316" };
-      default:
-        return { name: "document", color: "#6B7280" };
+    setIsEnrolling(true);
+    try {
+      // Enroll each student
+      const enrollmentPromises = selectedStudentIds.map((studentId) =>
+        api.post(API_ENDPOINTS.ENROLLMENTS.CREATE, {
+          classId: id,
+          studentId: studentId,
+        })
+      );
+
+      await Promise.all(enrollmentPromises);
+
+      Alert.alert(
+        "Success",
+        `${selectedStudentIds.length} student${
+          selectedStudentIds.length !== 1 ? "s" : ""
+        } enrolled successfully`,
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Clear selection and refresh classroom data
+              setSelectedStudentIds([]);
+              fetchClassroomData();
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Error enrolling students:", error);
+      const errorMessage =
+        error.message || "Failed to enroll students. Please try again.";
+      // Check if it's a duplicate enrollment error
+      if (errorMessage.includes("already enrolled")) {
+        Alert.alert("Already Enrolled", errorMessage);
+      } else {
+        Alert.alert("Error", errorMessage);
+      }
+    } finally {
+      setIsEnrolling(false);
     }
   };
 
-  const handleResourcePress = (resource) => {
-    setSelectedResource(resource);
-    setShowResourceModal(true);
+  // Remove student from class
+  const handleRemoveStudent = (student) => {
+    Alert.alert(
+      "Remove Student",
+      `Are you sure you want to remove ${student.name} from this class?`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setRemovingEnrollmentId(student.enrollmentId);
+            try {
+              await api.delete(
+                API_ENDPOINTS.ENROLLMENTS.DELETE(student.enrollmentId)
+              );
+              Alert.alert(
+                "Success",
+                `${student.name} has been removed from the class`
+              );
+              // Refresh classroom data
+              fetchClassroomData();
+            } catch (error) {
+              console.error("Error removing student:", error);
+              Alert.alert(
+                "Error",
+                error.message || "Failed to remove student. Please try again."
+              );
+            } finally {
+              setRemovingEnrollmentId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const handleReadContent = (resource) => {
-    // Navigate to reading view or open PDF viewer
-    console.log("Reading content:", resource);
-    // TODO: Implement reading functionality
-    // router.push(`/resources/${resource.id}/read`);
+  // Fetch students for enrollment
+  const fetchStudents = async () => {
+    if (!isAuthenticated || !classroom) return;
+
+    setIsLoadingStudents(true);
+    try {
+      const data = await api.get(API_ENDPOINTS.STUDENTS.LIST);
+      // Get list of already enrolled student IDs
+      const enrolledStudentIds = new Set(
+        (classroom.students || []).map((s) => s.id)
+      );
+
+      // Transform API response and filter by age range and enrollment status
+      const studentList = data
+        .map((item) => {
+          if (item.student) {
+            const age = calculateAge(item.student.birthDate);
+            return {
+              id: item.student.id,
+              name: item.student.name,
+              age: age,
+              birthDate: item.student.birthDate,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean)
+        .filter((student) => {
+          // Filter by classroom age range
+          if (!classroom.ageRange) return true;
+          const ageMatch =
+            student.age >= (classroom.ageRange.min || 0) &&
+            student.age <= (classroom.ageRange.max || 0);
+          // Also filter out already enrolled students
+          const notEnrolled = !enrolledStudentIds.has(student.id);
+          return ageMatch && notEnrolled;
+        });
+
+      setStudents(studentList);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      Alert.alert("Error", "Failed to load students");
+    } finally {
+      setIsLoadingStudents(false);
+    }
   };
 
-  const handlePlayVideo = (resource) => {
-    // Open video player
-    console.log("Playing video:", resource);
-    // TODO: Implement video playback
-    // router.push(`/resources/${resource.id}/play`);
+  // Fetch classroom data
+  const fetchClassroomData = async () => {
+    if (!id) return;
+
+    setLoading(true);
+    try {
+      const data = await api.get(API_ENDPOINTS.CLASSES.GET(id));
+      setClassroom(data);
+    } catch (error) {
+      console.error("Error fetching classroom data:", error);
+      Alert.alert("Error", error.message || "Failed to load classroom details");
+      router.back();
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditClassroom = () => {
-    // Navigate to edit classroom page
-    console.log("Edit classroom:", classroom.id);
-    // router.push(`/classrooms/${classroom.id}/edit`);
-  };
+  useEffect(() => {
+    fetchClassroomData();
+  }, [id]);
 
-  const handleManageStudents = () => {
-    // Navigate to manage students page
-    router.push("/students");
-  };
-
-  const handleAddResource = () => {
-    // Navigate to add resource page
-    router.push("/resources");
-  };
+  // Fetch students when classroom is loaded and modal is opened
+  useEffect(() => {
+    if (showStudentModal && classroom) {
+      fetchStudents();
+    }
+  }, [showStudentModal, classroom]);
 
   if (loading) {
     return (
       <BaseLayout showBottomNav={false} backgroundColor="bg-white">
         <View className="flex-1 items-center justify-center">
-          <Text className="text-gray-500 text-base">Loading classroom...</Text>
+          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+          <Text className="text-gray-500 text-base mt-4">
+            Loading classroom...
+          </Text>
         </View>
       </BaseLayout>
     );
@@ -205,7 +273,7 @@ export default function ClassroomDetailsPage() {
         <ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+          contentContainerStyle={{ flexGrow: 1 }}
         >
           {/* Purple Header Section */}
           <View
@@ -222,440 +290,378 @@ export default function ClassroomDetailsPage() {
               </TouchableOpacity>
               <View className="flex-1">
                 <Text className="text-2xl font-bold text-white mb-1">
-                  {classroom.name}
-                </Text>
-                <Ionicons name="bookmark-outline" size={24} color="white" />
-              </View>
-              <TouchableOpacity
-                onPress={handleEditClassroom}
-                className="ml-4"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="create-outline" size={24} color="white" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Quick Stats */}
-            <View className="flex-row gap-4 mt-4">
-              <View className="flex-1 bg-white/20 rounded-xl px-4 py-3">
-                <View className="flex-row items-center mb-1">
-                  <Ionicons name="people" size={18} color="white" />
-                  <Text className="text-2xl font-bold text-white ml-2">
-                    {classroom.studentCount}
-                  </Text>
-                </View>
-                <Text className="text-xs text-white opacity-90">
-                  Student{classroom.studentCount !== 1 ? "s" : ""}
-                </Text>
-              </View>
-              <View className="flex-1 bg-white/20 rounded-xl px-4 py-3">
-                <View className="flex-row items-center mb-1">
-                  <Ionicons name="book" size={18} color="white" />
-                  <Text className="text-2xl font-bold text-white ml-2">
-                    {classroom.resourceCount}
-                  </Text>
-                </View>
-                <Text className="text-xs text-white opacity-90">
-                  Resource{classroom.resourceCount !== 1 ? "s" : ""}
+                  Classroom Details
                 </Text>
               </View>
             </View>
-          </View>
 
-          {/* Tab Navigation */}
-          <View className="bg-white -mt-2 mx-4 mb-4">
-            <View className="bg-white rounded-xl shadow overflow-hidden">
-              <View className="flex-row">
-                {[
-                  { id: "overview", label: "Overview", icon: "grid" },
-                  { id: "students", label: "Students", icon: "people" },
-                  { id: "resources", label: "Resources", icon: "book" },
-                ].map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <TouchableOpacity
-                      key={tab.id}
-                      onPress={() => setActiveTab(tab.id)}
-                      className={`flex-1 py-4 items-center ${
-                        isActive ? "bg-purple-50" : "bg-white"
-                      }`}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name={tab.icon}
-                        size={20}
-                        color={isActive ? COLORS.PRIMARY : COLORS.GRAY_500}
-                      />
-                      <Text
-                        className={`text-xs font-semibold mt-1 ${
-                          isActive ? "text-purple-600" : "text-gray-500"
-                        }`}
-                      >
-                        {tab.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            {/* Classroom Name and Info */}
+            <View className="items-center mt-4">
+              <View className="w-16 h-16 rounded-full bg-white/20 items-center justify-center mb-3">
+                <Ionicons name="school" size={32} color="white" />
+              </View>
+              <Text className="text-3xl font-bold text-white mb-2">
+                {classroom.name}
+              </Text>
+              {classroom.description && (
+                <Text className="text-base text-white opacity-90 text-center mb-3">
+                  {classroom.description}
+                </Text>
+              )}
+              <View className="px-3 py-1 bg-white/20 rounded-full">
+                <Text className="text-sm text-white font-semibold">
+                  Ages {classroom.ageRange?.min || 0}-
+                  {classroom.ageRange?.max || 0}
+                </Text>
               </View>
             </View>
           </View>
 
           {/* Content Section */}
-          <View className="px-4 pb-6">
-            {activeTab === "overview" && (
-              <View className="bg-white rounded-xl shadow overflow-hidden p-6">
-                {/* Description */}
-                <View className="mb-6">
-                  <Text className="text-lg font-bold text-gray-900 mb-3">
-                    About This Classroom
-                  </Text>
-                  <Text className="text-base text-gray-600 leading-6">
-                    {classroom.description}
+          <View className="px-4 pb-6 -mt-2">
+            {/* Statistics Cards */}
+            <View className="flex-row gap-3 mb-4">
+              <View className="flex-1 bg-white rounded-xl shadow p-4">
+                <View className="flex-row items-center mb-2">
+                  <Ionicons name="people" size={24} color={COLORS.PRIMARY} />
+                  <Text className="text-3xl font-bold text-gray-900 ml-2">
+                    {classroom.studentCount || 0}
                   </Text>
                 </View>
-
-                {/* Age Range Badge */}
-                <View className="mb-6">
-                  <Text className="text-sm font-semibold text-gray-500 mb-2">
-                    Age Range
+                <Text className="text-sm text-gray-500">
+                  Student{classroom.studentCount !== 1 ? "s" : ""}
+                </Text>
+              </View>
+              <View className="flex-1 bg-white rounded-xl shadow p-4">
+                <View className="flex-row items-center mb-2">
+                  <Ionicons
+                    name="document-text"
+                    size={24}
+                    color={COLORS.PRIMARY}
+                  />
+                  <Text className="text-3xl font-bold text-gray-900 ml-2">
+                    {classroom.resourceCount || 0}
                   </Text>
-                  <View className="px-4 py-2 bg-purple-100 rounded-full self-start">
-                    <Text className="text-base font-semibold text-purple-700">
-                      Ages {classroom.ageRange.min}-{classroom.ageRange.max}
+                </View>
+                <Text className="text-sm text-gray-500">
+                  Resource{classroom.resourceCount !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            </View>
+
+            {/* Enrolled Students List */}
+            <View className="bg-white rounded-xl shadow overflow-hidden mb-4">
+              <View className="px-6 py-4 border-b border-gray-100 flex-row items-center justify-between">
+                <Text className="text-lg font-bold text-gray-900">
+                  Enrolled Students ({classroom.students?.length || 0})
+                </Text>
+              </View>
+              <View className="p-4">
+                {classroom.students && classroom.students.length > 0 ? (
+                  classroom.students.map((student, index) => {
+                    const age = calculateAge(student.birthDate);
+                    const isRemoving =
+                      removingEnrollmentId === student.enrollmentId;
+                    return (
+                      <View
+                        key={student.id}
+                        className={`flex-row items-center py-4 ${
+                          index !== classroom.students.length - 1
+                            ? "border-b border-gray-100"
+                            : ""
+                        }`}
+                      >
+                        <TouchableOpacity
+                          onPress={() => router.push(`/students/${student.id}`)}
+                          activeOpacity={0.7}
+                          className="flex-1 flex-row items-center"
+                        >
+                          <View className="w-12 h-12 rounded-full bg-purple-100 items-center justify-center mr-3">
+                            <Text className="text-lg font-semibold text-purple-700">
+                              {student.name.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                          <View className="flex-1">
+                            <Text className="text-base font-semibold text-gray-900">
+                              {student.name}
+                            </Text>
+                            <Text className="text-sm text-gray-500 mt-1">
+                              Age {age !== null ? age : "N/A"}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveStudent(student)}
+                          disabled={isRemoving}
+                          activeOpacity={0.7}
+                          className="ml-3 p-2"
+                        >
+                          {isRemoving ? (
+                            <ActivityIndicator
+                              size="small"
+                              color={COLORS.PRIMARY}
+                            />
+                          ) : (
+                            <Ionicons
+                              name="close-circle"
+                              size={24}
+                              color="#EF4444"
+                            />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })
+                ) : (
+                  <View className="py-8 items-center justify-center">
+                    <Ionicons
+                      name="people-outline"
+                      size={48}
+                      color={COLORS.GRAY_400}
+                    />
+                    <Text className="text-gray-500 text-base mt-4 text-center">
+                      No students enrolled yet
+                    </Text>
+                    <Text className="text-gray-400 text-sm mt-2 text-center">
+                      Use the "Enroll Students" section below to add students
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Classroom Information */}
+            <View className="bg-white rounded-xl shadow overflow-hidden mb-4">
+              <View className="px-6 py-4 border-b border-gray-100">
+                <Text className="text-lg font-bold text-gray-900">
+                  Classroom Information
+                </Text>
+              </View>
+              <View className="p-6">
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold text-gray-500 mb-1">
+                    Start Date
+                  </Text>
+                  <Text className="text-base text-gray-900">
+                    {formatDate(classroom.startDate)}
+                  </Text>
+                </View>
+                {classroom.endDate && (
+                  <View className="mb-4">
+                    <Text className="text-sm font-semibold text-gray-500 mb-1">
+                      End Date
+                    </Text>
+                    <Text className="text-base text-gray-900">
+                      {formatDate(classroom.endDate)}
+                    </Text>
+                  </View>
+                )}
+                <View>
+                  <Text className="text-sm font-semibold text-gray-500 mb-1">
+                    Created At
+                  </Text>
+                  <Text className="text-base text-gray-900">
+                    {formatDate(classroom.createdAt)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Age Range */}
+            <View className="bg-white rounded-xl shadow overflow-hidden mb-4">
+              <View className="px-6 py-4 border-b border-gray-100">
+                <Text className="text-lg font-bold text-gray-900">
+                  Age Range
+                </Text>
+              </View>
+              <View className="p-6">
+                <View className="flex-row items-center">
+                  <Ionicons name="calendar" size={24} color={COLORS.PRIMARY} />
+                  <Text className="text-base text-gray-900 ml-3">
+                    {classroom.ageRange?.min || 0} -{" "}
+                    {classroom.ageRange?.max || 0} years old
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Teacher Information */}
+            {classroom.teacherName && (
+              <View className="bg-white rounded-xl shadow overflow-hidden mb-4">
+                <View className="px-6 py-4 border-b border-gray-100">
+                  <Text className="text-lg font-bold text-gray-900">
+                    Teacher
+                  </Text>
+                </View>
+                <View className="p-6">
+                  <View className="flex-row items-center">
+                    <Ionicons name="person" size={24} color={COLORS.PRIMARY} />
+                    <Text className="text-base text-gray-900 ml-3">
+                      {classroom.teacherName}
                     </Text>
                   </View>
                 </View>
-
-                {/* Quick Actions */}
-                <View className="gap-3">
-                  <TouchableOpacity
-                    onPress={handleManageStudents}
-                    activeOpacity={0.7}
-                    className="flex-row items-center justify-between p-4 bg-gray-50 rounded-xl"
-                  >
-                    <View className="flex-row items-center flex-1">
-                      <View className="w-12 h-12 rounded-full bg-blue-100 items-center justify-center mr-4">
-                        <Ionicons name="people" size={24} color="#3B82F6" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-base font-semibold text-gray-900">
-                          Manage Students
-                        </Text>
-                        <Text className="text-sm text-gray-500">
-                          Add or remove students
-                        </Text>
-                      </View>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={COLORS.GRAY_400}
-                    />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={handleAddResource}
-                    activeOpacity={0.7}
-                    className="flex-row items-center justify-between p-4 bg-gray-50 rounded-xl"
-                  >
-                    <View className="flex-row items-center flex-1">
-                      <View className="w-12 h-12 rounded-full bg-green-100 items-center justify-center mr-4">
-                        <Ionicons name="add-circle" size={24} color="#14B8A6" />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-base font-semibold text-gray-900">
-                          Add Resources
-                        </Text>
-                        <Text className="text-sm text-gray-500">
-                          Assign new resources
-                        </Text>
-                      </View>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={20}
-                      color={COLORS.GRAY_400}
-                    />
-                  </TouchableOpacity>
-                </View>
               </View>
             )}
 
-            {activeTab === "students" && (
-              <View className="bg-white rounded-xl shadow overflow-hidden">
-                <View className="px-6 py-4 border-b border-gray-100 flex-row items-center justify-between">
-                  <Text className="text-lg font-bold text-gray-900">
-                    Students ({students.length})
-                  </Text>
-                  <TouchableOpacity
-                    onPress={handleManageStudents}
-                    activeOpacity={0.7}
-                    className="px-4 py-2 rounded-lg"
-                    style={{ backgroundColor: COLORS.PRIMARY }}
+            {/* Add Students Section */}
+            <View className="bg-white rounded-xl shadow overflow-hidden mb-4">
+              <View className="px-6 py-4 border-b border-gray-100">
+                <Text className="text-lg font-bold text-gray-900">
+                  Enroll Students
+                </Text>
+                <Text className="text-sm text-gray-500 mt-1">
+                  Add students to this classroom
+                </Text>
+              </View>
+              <View className="p-6">
+                <TouchableOpacity
+                  onPress={() => setShowStudentModal(true)}
+                  activeOpacity={0.7}
+                  className="border border-gray-300 rounded-xl px-4 py-3.5 flex-row items-center justify-between bg-white"
+                >
+                  <Text
+                    className={`text-base flex-1 ${
+                      selectedStudentIds.length > 0
+                        ? "text-gray-900"
+                        : "text-gray-400"
+                    }`}
+                    numberOfLines={1}
                   >
-                    <Text className="text-white font-semibold text-sm">
-                      Manage
+                    {selectedStudentIds.length > 0
+                      ? `${selectedStudentIds.length} student${
+                          selectedStudentIds.length !== 1 ? "s" : ""
+                        } selected`
+                      : "Select students to enroll"}
+                  </Text>
+                  <Ionicons
+                    name="chevron-down"
+                    size={20}
+                    color={COLORS.GRAY_500}
+                  />
+                </TouchableOpacity>
+                {selectedStudentIds.length > 0 && (
+                  <TouchableOpacity
+                    onPress={handleEnrollStudents}
+                    disabled={isEnrolling}
+                    activeOpacity={0.7}
+                    className="mt-4 px-4 py-3 rounded-xl items-center"
+                    style={{
+                      backgroundColor: isEnrolling
+                        ? COLORS.GRAY_400
+                        : COLORS.PRIMARY,
+                    }}
+                  >
+                    <Text className="text-white font-semibold text-base">
+                      {isEnrolling
+                        ? "Enrolling..."
+                        : `Enroll ${selectedStudentIds.length} Student${
+                            selectedStudentIds.length !== 1 ? "s" : ""
+                          }`}
                     </Text>
                   </TouchableOpacity>
-                </View>
-                <View className="p-4">
-                  {students.map((student, index) => (
-                    <View
-                      key={student.id}
-                      className={`flex-row items-center py-4 ${
-                        index < students.length - 1
-                          ? "border-b border-gray-100"
-                          : ""
-                      }`}
-                    >
-                      <View className="w-12 h-12 rounded-full bg-purple-100 items-center justify-center mr-4">
-                        <Text className="text-2xl">
-                          {student.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-base font-semibold text-slate-700">
-                          {student.name}
-                        </Text>
-                        <Text className="text-sm text-gray-500 mt-1">
-                          Age {student.age}
-                        </Text>
-                      </View>
-                      <Ionicons
-                        name="chevron-forward"
-                        size={20}
-                        color={COLORS.GRAY_400}
-                      />
-                    </View>
-                  ))}
-                </View>
+                )}
               </View>
-            )}
-
-            {activeTab === "resources" && (
-              <View>
-                <View className="mb-4 flex-row items-center justify-between">
-                  <Text className="text-lg font-bold text-gray-900">
-                    Resources ({resources.length})
-                  </Text>
-                  {/* <TouchableOpacity
-                    onPress={handleAddResource}
-                    activeOpacity={0.7}
-                    className="px-4 py-2 rounded-lg"
-                    style={{ backgroundColor: COLORS.PRIMARY }}
-                  >
-                    <Text className="text-white font-semibold text-sm">
-                      Add
-                    </Text>
-                  </TouchableOpacity> */}
-                </View>
-
-                {resources.map((resource) => {
-                  const resourceIcon = getResourceIcon(resource.type);
-                  return (
-                    <TouchableOpacity
-                      key={resource.id}
-                      onPress={() => handleResourcePress(resource)}
-                      activeOpacity={0.7}
-                      className="bg-white rounded-xl shadow overflow-hidden mb-4"
-                    >
-                      <View className="p-4">
-                        <View className="flex-row items-start mb-3">
-                          <View
-                            className="w-12 h-12 rounded-full items-center justify-center mr-4"
-                            style={{
-                              backgroundColor: `${resourceIcon.color}15`,
-                            }}
-                          >
-                            <Ionicons
-                              name={resourceIcon.name}
-                              size={24}
-                              color={resourceIcon.color}
-                            />
-                          </View>
-                          <View className="flex-1">
-                            <Text className="text-base font-bold text-gray-900 mb-1">
-                              {resource.title}
-                            </Text>
-                            <Text className="text-sm text-gray-600 mb-2">
-                              {resource.description}
-                            </Text>
-                            <View className="flex-row items-center flex-wrap">
-                              <View className="px-2 py-1 bg-gray-100 rounded-full mr-2 mb-1">
-                                <Text className="text-xs font-medium text-gray-700">
-                                  {resource.category}
-                                </Text>
-                              </View>
-                              <Text className="text-xs text-gray-500">
-                                {resource.duration}
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-
-                        {/* Action Buttons */}
-                        <View className="flex-row gap-2 mt-2">
-                          {resource.type === "document" ? (
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                handleReadContent(resource);
-                              }}
-                              activeOpacity={0.7}
-                              className="flex-1 px-4 py-3 rounded-xl flex-row items-center justify-center"
-                              style={{ backgroundColor: "#3B82F6" }}
-                            >
-                              <Ionicons name="book" size={18} color="white" />
-                              <Text className="text-white font-semibold text-sm ml-2">
-                                Read
-                              </Text>
-                            </TouchableOpacity>
-                          ) : (
-                            <TouchableOpacity
-                              onPress={(e) => {
-                                e.stopPropagation();
-                                handlePlayVideo(resource);
-                              }}
-                              activeOpacity={0.7}
-                              className="flex-1 px-4 py-3 rounded-xl flex-row items-center justify-center"
-                              style={{ backgroundColor: "#EF4444" }}
-                            >
-                              <Ionicons name="play" size={18} color="white" />
-                              <Text className="text-white font-semibold text-sm ml-2">
-                                Play
-                              </Text>
-                            </TouchableOpacity>
-                          )}
-                          <TouchableOpacity
-                            onPress={(e) => {
-                              e.stopPropagation();
-                              // Share or download
-                            }}
-                            activeOpacity={0.7}
-                            className="px-4 py-3 rounded-xl border border-gray-300"
-                          >
-                            <Ionicons
-                              name="download-outline"
-                              size={18}
-                              color={COLORS.GRAY_600}
-                            />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
+            </View>
           </View>
         </ScrollView>
       </View>
 
-      {/* Resource Detail Modal */}
+      {/* Student Selection Modal */}
       <Modal
-        visible={showResourceModal}
+        visible={showStudentModal}
         transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowResourceModal(false)}
+        animationType="fade"
+        onRequestClose={() => setShowStudentModal(false)}
       >
-        <View className="flex-1 bg-black/50">
-          <View className="flex-1 justify-end">
-            <View className="bg-white rounded-t-xl max-h-[80%]">
-              {selectedResource && (
-                <>
-                  <View className="px-6 py-4 border-b border-gray-200 flex-row items-center justify-between">
-                    <Text className="text-lg font-bold text-gray-900">
-                      Resource Details
-                    </Text>
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setShowStudentModal(false)}
+          className="flex-1 bg-black/50 justify-center items-center px-4"
+        >
+          <View
+            className="bg-white rounded-xl w-full max-w-md"
+            style={{ maxHeight: "70%" }}
+            onStartShouldSetResponder={() => true}
+          >
+            <View className="px-4 py-3 border-b border-gray-200">
+              <Text className="text-lg font-bold text-gray-900">
+                Select Students
+              </Text>
+              <Text className="text-sm text-gray-500 mt-1">
+                Ages {classroom?.ageRange?.min || 0}-
+                {classroom?.ageRange?.max || 0}
+              </Text>
+            </View>
+            {isLoadingStudents ? (
+              <View className="px-4 py-12 items-center justify-center">
+                <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+                <Text className="text-gray-500 text-base mt-4">
+                  Loading students...
+                </Text>
+              </View>
+            ) : students.length === 0 ? (
+              <View className="px-4 py-12 items-center justify-center">
+                <Ionicons
+                  name="people-outline"
+                  size={48}
+                  color={COLORS.GRAY_400}
+                />
+                <Text className="text-gray-500 text-base mt-4 text-center">
+                  No students available for this age range
+                </Text>
+                <Text className="text-gray-400 text-sm mt-2 text-center">
+                  Create students first or adjust the classroom age range
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={students}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => {
+                  const isSelected = selectedStudentIds.includes(item.id);
+                  return (
                     <TouchableOpacity
-                      onPress={() => setShowResourceModal(false)}
+                      onPress={() => handleStudentToggle(item.id)}
                       activeOpacity={0.7}
+                      className="px-4 py-4 flex-row items-center justify-between border-b border-gray-100"
                     >
-                      <Ionicons
-                        name="close"
-                        size={24}
-                        color={COLORS.GRAY_600}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  <ScrollView className="px-6 py-4">
-                    <View className="mb-4">
-                      <View
-                        className="w-16 h-16 rounded-full items-center justify-center mb-4"
-                        style={{
-                          backgroundColor: `${
-                            getResourceIcon(selectedResource.type).color
-                          }15`,
-                        }}
-                      >
-                        <Ionicons
-                          name={getResourceIcon(selectedResource.type).name}
-                          size={32}
-                          color={getResourceIcon(selectedResource.type).color}
-                        />
-                      </View>
-                      <Text className="text-2xl font-bold text-gray-900 mb-2">
-                        {selectedResource.title}
-                      </Text>
-                      <Text className="text-base text-gray-600 mb-4">
-                        {selectedResource.description}
-                      </Text>
-                      <View className="flex-row items-center flex-wrap gap-2">
-                        <View className="px-3 py-1 bg-purple-100 rounded-full">
-                          <Text className="text-xs font-semibold text-purple-700">
-                            {selectedResource.category}
-                          </Text>
-                        </View>
-                        <View className="px-3 py-1 bg-gray-100 rounded-full">
-                          <Text className="text-xs font-medium text-gray-700">
-                            {selectedResource.fileType}
-                          </Text>
-                        </View>
-                        <Text className="text-xs text-gray-500">
-                          {selectedResource.size}
+                      <View className="flex-1">
+                        <Text className="text-base text-gray-900 font-medium">
+                          {item.name}
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Age {item.age}
                         </Text>
                       </View>
-                    </View>
-
-                    <View className="flex-row gap-3 mt-4">
-                      {selectedResource.type === "document" ? (
-                        <TouchableOpacity
-                          onPress={() => {
-                            handleReadContent(selectedResource);
-                            setShowResourceModal(false);
-                          }}
-                          activeOpacity={0.7}
-                          className="flex-1 px-6 py-4 rounded-xl flex-row items-center justify-center"
-                          style={{ backgroundColor: "#3B82F6" }}
-                        >
-                          <Ionicons name="book" size={20} color="white" />
-                          <Text className="text-white font-semibold text-base ml-2">
-                            Read to Students
-                          </Text>
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          onPress={() => {
-                            handlePlayVideo(selectedResource);
-                            setShowResourceModal(false);
-                          }}
-                          activeOpacity={0.7}
-                          className="flex-1 px-6 py-4 rounded-xl flex-row items-center justify-center"
-                          style={{ backgroundColor: "#EF4444" }}
-                        >
-                          <Ionicons name="play" size={20} color="white" />
-                          <Text className="text-white font-semibold text-base ml-2">
-                            Play Video
-                          </Text>
-                        </TouchableOpacity>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={24}
+                          color={COLORS.PRIMARY}
+                        />
                       )}
-                    </View>
-                  </ScrollView>
-                </>
-              )}
+                      {!isSelected && (
+                        <View className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
+            <View className="px-4 py-3 border-t border-gray-200">
+              <TouchableOpacity
+                onPress={() => setShowStudentModal(false)}
+                activeOpacity={0.7}
+                className="bg-purple-600 rounded-xl py-3 items-center"
+              >
+                <Text className="text-white font-semibold text-base">
+                  Done ({selectedStudentIds.length} selected)
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </Modal>
     </BaseLayout>
   );

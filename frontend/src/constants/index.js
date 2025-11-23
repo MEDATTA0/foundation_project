@@ -12,6 +12,26 @@ export const API_ENDPOINTS = {
     PROFILE: "/user/profile",
     UPDATE: "/user/update",
   },
+  DASHBOARD: "/dashboard",
+  STUDENTS: {
+    LIST: "/students",
+    CREATE: "/students",
+    GET: (id) => `/students/${id}`,
+    UPDATE: (id) => `/students/${id}`,
+    DELETE: (id) => `/students/${id}`,
+  },
+  CLASSES: {
+    LIST: "/classes",
+    CREATE: "/classes",
+    GET: (id) => `/classes/${id}`,
+    UPDATE: (id) => `/classes/${id}`,
+    DELETE: (id) => `/classes/${id}`,
+  },
+  ENROLLMENTS: {
+    CREATE: "/enrollments",
+    LIST: "/enrollments",
+    DELETE: (id) => `/enrollments/${id}`,
+  },
 };
 
 // App Configuration

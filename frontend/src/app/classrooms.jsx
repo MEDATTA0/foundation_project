@@ -4,10 +4,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { BaseLayout } from "../components/layout";
 import { BottomNavigation } from "../components/navigation";
-import { NAVIGATION_TABS, COLORS } from "../constants";
+import { NAVIGATION_TABS, COLORS, API_ENDPOINTS } from "../constants";
+import { api } from "../services/api";
+import { useAuthStore } from "../stores";
 
 export default function ClassroomsPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
 
   // Age range filter options
   const ageRanges = [
@@ -93,23 +96,23 @@ export default function ClassroomsPage() {
   // Fetch classrooms from backend
   useEffect(() => {
     const fetchClassrooms = async () => {
+      if (!isAuthenticated) return;
+
       setLoading(true);
       try {
-        // TODO: Replace with actual API call
-        // const response = await api.get('/classrooms');
-        // setClassrooms(response.data);
-
-        // Using mock data for now
-        setClassrooms(mockClassrooms);
+        const data = await api.get(API_ENDPOINTS.CLASSES.LIST);
+        setClassrooms(data);
       } catch (error) {
         console.error("Error fetching classrooms:", error);
+        // Fallback to empty array on error
+        setClassrooms([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchClassrooms();
-  }, []);
+  }, [isAuthenticated]);
 
   // Filter classrooms based on selected age range
   const filteredClassrooms =

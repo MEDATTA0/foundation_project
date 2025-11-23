@@ -13,7 +13,7 @@ export function AuthButton({
       className={`rounded-lg px-8 items-center justify-center min-h-[52px] ${
         disabled || loading ? "opacity-60" : ""
       }`}
-      style={{ backgroundColor: COLORS.BUTTON_BLUE }}
+      style={{ backgroundColor: COLORS.PRIMARY }}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}

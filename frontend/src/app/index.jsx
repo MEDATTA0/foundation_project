@@ -3,16 +3,17 @@ import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AppLogo, AuthButton, AuthGradientBackground } from "../components/ui";
+import { useAuthStore } from "../stores";
 
-/**
- * Splash Screen
- * Initial screen with logo and get started button
- */
 export default function SplashScreen() {
   const router = useRouter();
-
+  const { isAuthenticated } = useAuthStore();
   const handleGetStarted = () => {
-    router.push("/signup");
+    if (isAuthenticated) {
+      router.push("/home");
+    } else {
+      router.push("/login");
+    }
   };
 
   return (

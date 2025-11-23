@@ -48,17 +48,21 @@ export default function LoginScreen() {
         rememberMe: formData.rememberMe,
       });
 
-      // Response structure: { token, user }
-      if (response.token && response.user) {
+      // Response structure: { token, user } or { session: { token }, user }
+      const token = response.token || response.session?.token;
+      const user = response.user;
+
+      if (token && user) {
         // Store token and user in auth store
-        login(response.user, response.token);
+        login(user, token);
         console.log("Login successful");
-        console.log(response.user);
-        console.log(response.token);
+        console.log("User:", user);
+        console.log("Token:", token);
 
         // Navigate to home
         router.replace("/home");
       } else {
+        console.error("Invalid response structure:", response);
         setError("Invalid response from server");
       }
     } catch (error) {

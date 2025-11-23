@@ -12,10 +12,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { BaseLayout } from "../../components/layout";
 import { BottomNavigation } from "../../components/navigation";
-import { NAVIGATION_TABS, COLORS } from "../../constants";
+import { NAVIGATION_TABS, COLORS, API_ENDPOINTS } from "../../constants";
+import { api } from "../../services/api";
+import { useAuthStore } from "../../stores";
 
 export default function CreateClassroomPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
 
   // Age range options
   const ageRanges = [
@@ -41,72 +44,58 @@ export default function CreateClassroomPage() {
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [assignStudents, setAssignStudents] = useState(false);
 
-  // Mock resources - Replace with actual API call
-  const mockResources = [
-    {
-      id: 1,
-      title: "Basic Counting Course",
-      ageRange: { min: 4, max: 6 },
-    },
-    {
-      id: 2,
-      title: "Alphabet Adventure",
-      ageRange: { min: 4, max: 6 },
-    },
-    {
-      id: 3,
-      title: "Simple Addition",
-      ageRange: { min: 7, max: 10 },
-    },
-    {
-      id: 4,
-      title: "Reading Comprehension",
-      ageRange: { min: 7, max: 10 },
-    },
-    {
-      id: 5,
-      title: "Introduction to Coding",
-      ageRange: { min: 11, max: 14 },
-    },
-    {
-      id: 6,
-      title: "Advanced Mathematics",
-      ageRange: { min: 11, max: 14 },
-    },
-  ];
-
-  // Mock students - Replace with actual API call
-  const mockStudents = [
-    { id: 1, name: "Emma Watson", age: 5 },
-    { id: 2, name: "Oliver Smith", age: 6 },
-    { id: 3, name: "Sophia Johnson", age: 8 },
-    { id: 4, name: "Liam Brown", age: 9 },
-    { id: 5, name: "Ava Davis", age: 12 },
-    { id: 6, name: "Noah Wilson", age: 13 },
-  ];
-
   // Fetch resources and students
   useEffect(() => {
     const fetchData = async () => {
+      if (!isAuthenticated) return;
+
       setLoading(true);
       try {
-        // TODO: Replace with actual API calls
-        // const resourcesResponse = await api.get('/resources');
-        // const studentsResponse = await api.get('/students');
-        // setResources(resourcesResponse.data);
-        // setStudents(studentsResponse.data);
+        // Fetch students from API
+        const studentsData = await api.get(API_ENDPOINTS.STUDENTS.LIST);
+        // Transform API response to component format
+        const studentList = studentsData
+          .map((item) => {
+            if (item.student) {
+              // Calculate age from birthDate
+              const birthDate = new Date(item.student.birthDate);
+              const today = new Date();
+              let age = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+              if (
+                monthDiff < 0 ||
+                (monthDiff === 0 && today.getDate() < birthDate.getDate())
+              ) {
+                age--;
+              }
 
-        setResources(mockResources);
-        setStudents(mockStudents);
+              return {
+                id: item.student.id,
+                name: item.student.name,
+                age: age,
+              };
+            }
+            return null;
+          })
+          .filter(Boolean);
+
+        setStudents(studentList);
+
+        // Resources are tied to classes, so they're not available before class creation
+        // Set empty array and show "not available" message
+        setResources([]);
       } catch (error) {
         console.error("Error fetching data:", error);
+        // On error, set empty arrays
+        setStudents([]);
+        setResources([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
 
   // Filter resources based on selected age range
   const filteredResources = formData.ageRange
@@ -200,35 +189,81 @@ export default function CreateClassroomPage() {
       return;
     }
 
-    if (formData.resourceIds.length === 0) {
-      alert("Please select at least one resource");
-      return;
-    }
-
     setSubmitting(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await api.post('/classrooms', {
-      //   name: formData.name,
-      //   description: formData.description,
-      //   ageRange: formData.ageRange,
-      //   resourceIds: formData.resourceIds,
-      //   studentIds: assignStudents ? formData.studentIds : [],
-      // });
+      // Calculate start and end dates (using current date as start, 6 months later as end)
+      const now = new Date();
+      const startDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate()
+      );
 
-      console.log("Creating classroom:", {
-        ...formData,
-        studentIds: assignStudents ? formData.studentIds : [],
-      });
+      const endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + 6);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Format dates as ISO 8601 strings (required by backend)
+      // Ensure we're sending valid ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sssZ
+      const startDateISO = startDate.toISOString();
+      const endDateISO = endDate.toISOString();
+
+      // Validate dates are valid ISO strings
+      if (
+        !startDateISO ||
+        !endDateISO ||
+        typeof startDateISO !== "string" ||
+        typeof endDateISO !== "string"
+      ) {
+        throw new Error("Failed to format dates");
+      }
+
+      // Ensure dates are strings (not Date objects)
+      const requestBody = {
+        name: formData.name.trim(),
+        description: formData.description.trim() || undefined,
+        startDate: String(startDateISO),
+        endDate: String(endDateISO),
+        ageMin: formData.ageRange?.min,
+        ageMax: formData.ageRange?.max,
+      };
+
+      // Debug: Log the exact request body being sent
+      console.log(
+        "Request body being sent:",
+        JSON.stringify(requestBody, null, 2)
+      );
+      console.log("Start date type:", typeof requestBody.startDate);
+      console.log("End date type:", typeof requestBody.endDate);
+      console.log("Start date value:", requestBody.startDate);
+      console.log("End date value:", requestBody.endDate);
+
+      // Validate ISO 8601 format
+      const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+      if (
+        !iso8601Regex.test(requestBody.startDate) ||
+        !iso8601Regex.test(requestBody.endDate)
+      ) {
+        console.error("Invalid ISO 8601 format:", {
+          startDate: requestBody.startDate,
+          endDate: requestBody.endDate,
+        });
+        throw new Error("Dates are not in valid ISO 8601 format");
+      }
+
+      const response = await api.post(
+        API_ENDPOINTS.CLASSES.CREATE,
+        requestBody
+      );
+
+      console.log("Classroom created:", response);
 
       // Navigate back to classrooms page
       router.back();
     } catch (error) {
       console.error("Error creating classroom:", error);
-      alert("Failed to create classroom. Please try again.");
+      const errorMessage =
+        error.message || "Failed to create classroom. Please try again.";
+      alert(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -340,43 +375,54 @@ export default function CreateClassroomPage() {
                 {/* Resources Selection */}
                 <View className="mb-5">
                   <Text className="text-sm font-semibold text-gray-900 mb-2">
-                    Resources <Text className="text-red-500">*</Text>
+                    Resources (Optional)
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (!formData.ageRange) {
-                        alert("Please select an age range first");
-                        return;
-                      }
-                      setShowResourceDropdown(true);
-                    }}
-                    activeOpacity={0.7}
-                    className="border border-gray-300 rounded-xl px-4 py-3.5 flex-row items-center justify-between bg-white"
-                  >
-                    <Text
-                      className={`text-base flex-1 ${
-                        formData.resourceIds.length > 0
-                          ? "text-gray-900"
-                          : "text-gray-400"
-                      }`}
-                      numberOfLines={1}
-                    >
-                      {formData.resourceIds.length > 0
-                        ? `${formData.resourceIds.length} resource${
-                            formData.resourceIds.length !== 1 ? "s" : ""
-                          } selected`
-                        : "Select resources"}
-                    </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={20}
-                      color={COLORS.GRAY_500}
-                    />
-                  </TouchableOpacity>
-                  {formData.resourceIds.length > 0 && (
-                    <Text className="text-xs text-gray-500 mt-2">
-                      {getSelectedResourceNames()}
-                    </Text>
+                  {resources.length === 0 ? (
+                    <View className="border border-gray-300 rounded-xl px-4 py-3.5 bg-gray-50">
+                      <Text className="text-base text-gray-500 italic">
+                        Resources are not available. You can add resources after
+                        creating the classroom.
+                      </Text>
+                    </View>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (!formData.ageRange) {
+                            alert("Please select an age range first");
+                            return;
+                          }
+                          setShowResourceDropdown(true);
+                        }}
+                        activeOpacity={0.7}
+                        className="border border-gray-300 rounded-xl px-4 py-3.5 flex-row items-center justify-between bg-white"
+                      >
+                        <Text
+                          className={`text-base flex-1 ${
+                            formData.resourceIds.length > 0
+                              ? "text-gray-900"
+                              : "text-gray-400"
+                          }`}
+                          numberOfLines={1}
+                        >
+                          {formData.resourceIds.length > 0
+                            ? `${formData.resourceIds.length} resource${
+                                formData.resourceIds.length !== 1 ? "s" : ""
+                              } selected`
+                            : "Select resources"}
+                        </Text>
+                        <Ionicons
+                          name="chevron-down"
+                          size={20}
+                          color={COLORS.GRAY_500}
+                        />
+                      </TouchableOpacity>
+                      {formData.resourceIds.length > 0 && (
+                        <Text className="text-xs text-gray-500 mt-2">
+                          {getSelectedResourceNames()}
+                        </Text>
+                      )}
+                    </>
                   )}
                 </View>
 
@@ -408,41 +454,51 @@ export default function CreateClassroomPage() {
 
                   {assignStudents && (
                     <View>
-                      <TouchableOpacity
-                        onPress={() => {
-                          if (!formData.ageRange) {
-                            alert("Please select an age range first");
-                            return;
-                          }
-                          setShowStudentDropdown(true);
-                        }}
-                        activeOpacity={0.7}
-                        className="border border-gray-300 rounded-xl px-4 py-3.5 flex-row items-center justify-between bg-white"
-                      >
-                        <Text
-                          className={`text-base flex-1 ${
-                            formData.studentIds.length > 0
-                              ? "text-gray-900"
-                              : "text-gray-400"
-                          }`}
-                          numberOfLines={1}
-                        >
-                          {formData.studentIds.length > 0
-                            ? `${formData.studentIds.length} student${
-                                formData.studentIds.length !== 1 ? "s" : ""
-                              } selected`
-                            : "Select students"}
-                        </Text>
-                        <Ionicons
-                          name="chevron-down"
-                          size={20}
-                          color={COLORS.GRAY_500}
-                        />
-                      </TouchableOpacity>
-                      {formData.studentIds.length > 0 && (
-                        <Text className="text-xs text-gray-500 mt-2">
-                          {getSelectedStudentNames()}
-                        </Text>
+                      {students.length === 0 ? (
+                        <View className="border border-gray-300 rounded-xl px-4 py-3.5 bg-gray-50">
+                          <Text className="text-base text-gray-500 italic">
+                            No students available. Please create students first.
+                          </Text>
+                        </View>
+                      ) : (
+                        <>
+                          <TouchableOpacity
+                            onPress={() => {
+                              if (!formData.ageRange) {
+                                alert("Please select an age range first");
+                                return;
+                              }
+                              setShowStudentDropdown(true);
+                            }}
+                            activeOpacity={0.7}
+                            className="border border-gray-300 rounded-xl px-4 py-3.5 flex-row items-center justify-between bg-white"
+                          >
+                            <Text
+                              className={`text-base flex-1 ${
+                                formData.studentIds.length > 0
+                                  ? "text-gray-900"
+                                  : "text-gray-400"
+                              }`}
+                              numberOfLines={1}
+                            >
+                              {formData.studentIds.length > 0
+                                ? `${formData.studentIds.length} student${
+                                    formData.studentIds.length !== 1 ? "s" : ""
+                                  } selected`
+                                : "Select students"}
+                            </Text>
+                            <Ionicons
+                              name="chevron-down"
+                              size={20}
+                              color={COLORS.GRAY_500}
+                            />
+                          </TouchableOpacity>
+                          {formData.studentIds.length > 0 && (
+                            <Text className="text-xs text-gray-500 mt-2">
+                              {getSelectedStudentNames()}
+                            </Text>
+                          )}
+                        </>
                       )}
                     </View>
                   )}
@@ -506,39 +562,55 @@ export default function CreateClassroomPage() {
                 Age {formData.ageRange?.label || "N/A"}
               </Text>
             </View>
-            <FlatList
-              data={filteredResources}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => {
-                const isSelected = formData.resourceIds.includes(item.id);
-                return (
-                  <TouchableOpacity
-                    onPress={() => handleResourceToggle(item.id)}
-                    activeOpacity={0.7}
-                    className="px-4 py-4 flex-row items-center justify-between border-b border-gray-100"
-                  >
-                    <View className="flex-1">
-                      <Text className="text-base text-gray-900 font-medium">
-                        {item.title}
-                      </Text>
-                      <Text className="text-sm text-gray-500 mt-1">
-                        Ages {item.ageRange.min}-{item.ageRange.max}
-                      </Text>
-                    </View>
-                    {isSelected && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={24}
-                        color={COLORS.PRIMARY}
-                      />
-                    )}
-                    {!isSelected && (
-                      <View className="w-6 h-6 rounded-full border-2 border-gray-300" />
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
+            {filteredResources.length === 0 ? (
+              <View className="px-4 py-12 items-center justify-center">
+                <Ionicons
+                  name="document-outline"
+                  size={48}
+                  color={COLORS.GRAY_400}
+                />
+                <Text className="text-gray-500 text-base mt-4 text-center">
+                  No resources available
+                </Text>
+                <Text className="text-gray-400 text-sm mt-2 text-center">
+                  Resources can be added after creating the classroom
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredResources}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => {
+                  const isSelected = formData.resourceIds.includes(item.id);
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleResourceToggle(item.id)}
+                      activeOpacity={0.7}
+                      className="px-4 py-4 flex-row items-center justify-between border-b border-gray-100"
+                    >
+                      <View className="flex-1">
+                        <Text className="text-base text-gray-900 font-medium">
+                          {item.title}
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Ages {item.ageRange.min}-{item.ageRange.max}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={24}
+                          color={COLORS.PRIMARY}
+                        />
+                      )}
+                      {!isSelected && (
+                        <View className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
             <View className="px-4 py-3 border-t border-gray-200">
               <TouchableOpacity
                 onPress={() => setShowResourceDropdown(false)}
@@ -579,39 +651,55 @@ export default function CreateClassroomPage() {
                 Age {formData.ageRange?.label || "N/A"}
               </Text>
             </View>
-            <FlatList
-              data={filteredStudents}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={({ item }) => {
-                const isSelected = formData.studentIds.includes(item.id);
-                return (
-                  <TouchableOpacity
-                    onPress={() => handleStudentToggle(item.id)}
-                    activeOpacity={0.7}
-                    className="px-4 py-4 flex-row items-center justify-between border-b border-gray-100"
-                  >
-                    <View className="flex-1">
-                      <Text className="text-base text-gray-900 font-medium">
-                        {item.name}
-                      </Text>
-                      <Text className="text-sm text-gray-500 mt-1">
-                        Age {item.age}
-                      </Text>
-                    </View>
-                    {isSelected && (
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={24}
-                        color={COLORS.PRIMARY}
-                      />
-                    )}
-                    {!isSelected && (
-                      <View className="w-6 h-6 rounded-full border-2 border-gray-300" />
-                    )}
-                  </TouchableOpacity>
-                );
-              }}
-            />
+            {filteredStudents.length === 0 ? (
+              <View className="px-4 py-12 items-center justify-center">
+                <Ionicons
+                  name="people-outline"
+                  size={48}
+                  color={COLORS.GRAY_400}
+                />
+                <Text className="text-gray-500 text-base mt-4 text-center">
+                  No students available for this age range
+                </Text>
+                <Text className="text-gray-400 text-sm mt-2 text-center">
+                  Create students first or adjust the age range
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredStudents}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => {
+                  const isSelected = formData.studentIds.includes(item.id);
+                  return (
+                    <TouchableOpacity
+                      onPress={() => handleStudentToggle(item.id)}
+                      activeOpacity={0.7}
+                      className="px-4 py-4 flex-row items-center justify-between border-b border-gray-100"
+                    >
+                      <View className="flex-1">
+                        <Text className="text-base text-gray-900 font-medium">
+                          {item.name}
+                        </Text>
+                        <Text className="text-sm text-gray-500 mt-1">
+                          Age {item.age}
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={24}
+                          color={COLORS.PRIMARY}
+                        />
+                      )}
+                      {!isSelected && (
+                        <View className="w-6 h-6 rounded-full border-2 border-gray-300" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
+            )}
             <View className="px-4 py-3 border-t border-gray-200">
               <TouchableOpacity
                 onPress={() => setShowStudentDropdown(false)}

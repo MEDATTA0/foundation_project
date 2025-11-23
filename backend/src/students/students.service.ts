@@ -13,28 +13,72 @@ export class StudentsService {
 
   async create(createStudentDto: CreateStudentDto, currentUserId: string) {
     const { name, birthDate } = createStudentDto;
+
+    // Find or create the teacher record for this user
+    let teacher = await this.prisma.teacher.findFirst({
+      where: { userId: currentUserId },
+    });
+
+    // If teacher doesn't exist, create it
+    if (!teacher) {
+      teacher = await this.prisma.teacher.create({
+        data: { userId: currentUserId },
+      });
+    }
+
     return this.prisma.student.create({
       data: {
         name,
         birthDate: new Date(birthDate),
-        TeacherStudent: { create: { teacherId: currentUserId } },
+        TeacherStudent: { create: { teacherId: teacher.id } },
       },
     });
   }
 
   async findAll(currentUserId: string) {
+    // Find or create the teacher record for this user
+    let teacher = await this.prisma.teacher.findFirst({
+      where: { userId: currentUserId },
+    });
+
+    // If teacher doesn't exist, create it
+    if (!teacher) {
+      teacher = await this.prisma.teacher.create({
+        data: { userId: currentUserId },
+      });
+    }
+
     return await this.prisma.teacherStudent.findMany({
       where: {
-        teacherId: currentUserId,
+        teacherId: teacher.id,
+      },
+      include: {
+        student: true,
       },
     });
   }
 
   async findOne(id: string, currentUserId: string) {
+    // Find or create the teacher record for this user
+    let teacher = await this.prisma.teacher.findFirst({
+      where: { userId: currentUserId },
+    });
+
+    // If teacher doesn't exist, create it
+    if (!teacher) {
+      teacher = await this.prisma.teacher.create({
+        data: { userId: currentUserId },
+      });
+    }
+
     const student = await this.prisma.student.findUnique({
       where: { id },
       include: {
-        Enrollment: true,
+        Enrollment: {
+          include: {
+            class: true,
+          },
+        },
         TeacherStudent: { select: { teacherId: true } },
         _count: { select: { Attendance: true } },
       },
@@ -42,7 +86,7 @@ export class StudentsService {
 
     if (!student) throw new NotFoundException();
     const { teacherId } = student.TeacherStudent[0];
-    if (teacherId !== currentUserId) throw new ForbiddenException();
+    if (teacherId !== teacher.id) throw new ForbiddenException();
     const attendance = await this.prisma.attendance.count({
       where: { present: true },
     });

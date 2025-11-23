@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -20,6 +21,19 @@ export class EnrollmentsService {
   ) {
     const { classId, studentId } = createEnrollmentDto;
     await this.classService.findOne(classId, currentUserId);
+
+    // Check if student is already enrolled in this class
+    const existingEnrollment = await this.prisma.enrollment.findFirst({
+      where: {
+        classId,
+        studentId,
+      },
+    });
+
+    if (existingEnrollment) {
+      throw new ConflictException('Student is already enrolled in this class');
+    }
+
     const newEnrollment = await this.prisma.enrollment.create({
       data: { classId, studentId },
     });
@@ -40,8 +54,20 @@ export class EnrollmentsService {
   }
 
   async remove(enrollmentId: string, currentUserId: string) {
+    // Find or create the teacher record for this user
+    let teacher = await this.prisma.teacher.findFirst({
+      where: { userId: currentUserId },
+    });
+
+    // If teacher doesn't exist, create it
+    if (!teacher) {
+      teacher = await this.prisma.teacher.create({
+        data: { userId: currentUserId },
+      });
+    }
+
     const enrollment = await this.findOne(enrollmentId);
-    if (enrollment.class.teacherId !== currentUserId)
+    if (enrollment.class.teacherId !== teacher.id)
       throw new ForbiddenException();
 
     await this.prisma.enrollment.delete({ where: { id: enrollmentId } });
