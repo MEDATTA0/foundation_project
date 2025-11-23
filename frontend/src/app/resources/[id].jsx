@@ -33,12 +33,13 @@ import {
 
 export default function ResourceDetailsPage() {
   const router = useRouter();
-  const { id, classId } = useLocalSearchParams();
+  const { id, classId, sessionId } = useLocalSearchParams();
   const { isAuthenticated } = useAuthStore();
   const [resource, setResource] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [localPath, setLocalPath] = useState(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [showWebViewPlayer, setShowWebViewPlayer] = useState(false);
@@ -47,6 +48,7 @@ export default function ResourceDetailsPage() {
   const [webViewUri, setWebViewUri] = useState(null);
   const [youtubeVideoId, setYoutubeVideoId] = useState(null);
   const [isVimeo, setIsVimeo] = useState(false);
+  const [videoCompleted, setVideoCompleted] = useState(false);
 
   // Determine resource type from URL
   const getResourceType = (url) => {
@@ -202,7 +204,7 @@ export default function ResourceDetailsPage() {
     ) {
       Alert.alert(
         "Error",
-        "YouTube and Vimeo videos must be played using WebView. Please check the video URL."
+        "YouTube and Vimeo videos can not be downloaded at the moment."
       );
       return;
     }
@@ -229,7 +231,7 @@ export default function ResourceDetailsPage() {
     if (youtubeUrl || vimeoUrl) {
       Alert.alert(
         "Not Supported",
-        "YouTube and Vimeo videos cannot be downloaded directly. Please use the video URL to watch online."
+        "YouTube and Vimeo videos cannot be downloaded directly. Please watch them now."
       );
       return;
     }
@@ -260,16 +262,21 @@ export default function ResourceDetailsPage() {
     }
 
     setDownloading(true);
+    setDownloadProgress(0);
     try {
       const result = await downloadResource(
         id,
         resource.resource,
-        resource.title || "Resource"
+        resource.title || "Resource",
+        (progress) => {
+          setDownloadProgress(progress);
+        }
       );
 
       if (result.success) {
         setIsDownloaded(true);
         setLocalPath(result.localPath);
+        setDownloadProgress(0);
         Alert.alert(
           "Success",
           result.alreadyExists
@@ -284,6 +291,7 @@ export default function ResourceDetailsPage() {
       Alert.alert("Error", "Failed to download resource");
     } finally {
       setDownloading(false);
+      setDownloadProgress(0);
     }
   };
 
@@ -547,35 +555,45 @@ export default function ResourceDetailsPage() {
 
             {/* Download/Remove Download Button */}
             {resourceType === "video" && (
-              <TouchableOpacity
-                onPress={handleDownload}
-                disabled={downloading}
-                activeOpacity={0.7}
-                className={`rounded-xl px-6 py-4 flex-row items-center justify-center shadow-lg mb-4 ${
-                  isDownloaded
-                    ? "bg-red-500"
-                    : downloading
-                    ? "bg-gray-400"
-                    : "bg-green-600"
-                }`}
-              >
-                {downloading ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Ionicons
-                    name={isDownloaded ? "trash" : "download"}
-                    size={24}
-                    color="white"
-                  />
+              <View className="mb-4">
+                <TouchableOpacity
+                  onPress={handleDownload}
+                  disabled={downloading}
+                  activeOpacity={0.7}
+                  className={`rounded-xl px-6 py-4 flex-row items-center justify-center shadow-lg ${
+                    isDownloaded
+                      ? "bg-red-500"
+                      : downloading
+                      ? "bg-gray-400"
+                      : "bg-green-600"
+                  }`}
+                >
+                  {downloading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Ionicons
+                      name={isDownloaded ? "trash" : "download"}
+                      size={24}
+                      color="white"
+                    />
+                  )}
+                  <Text className="text-white font-semibold text-base ml-2">
+                    {downloading
+                      ? `Downloading... ${Math.round(downloadProgress * 100)}%`
+                      : isDownloaded
+                      ? "Remove Download"
+                      : "Download for Offline"}
+                  </Text>
+                </TouchableOpacity>
+                {downloading && downloadProgress > 0 && (
+                  <View className="mt-2 bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <View
+                      className="bg-green-600 h-full rounded-full"
+                      style={{ width: `${downloadProgress * 100}%` }}
+                    />
+                  </View>
                 )}
-                <Text className="text-white font-semibold text-base ml-2">
-                  {downloading
-                    ? "Downloading..."
-                    : isDownloaded
-                    ? "Remove Download"
-                    : "Download for Offline"}
-                </Text>
-              </TouchableOpacity>
+              </View>
             )}
 
             {/* Open Resource Button (for non-videos) */}
@@ -608,12 +626,15 @@ export default function ResourceDetailsPage() {
         visible={showVideoPlayer}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setShowVideoPlayer(false)}
+        onRequestClose={() => {
+          handleVideoClose();
+        }}
       >
         <View className="flex-1 bg-black">
           <VideoPlayer
             uri={videoUri}
-            onClose={() => setShowVideoPlayer(false)}
+            onClose={() => handleVideoClose()}
+            onVideoEnd={() => handleVideoEnd()}
           />
         </View>
       </Modal>
@@ -623,12 +644,15 @@ export default function ResourceDetailsPage() {
         visible={showYouTubePlayer}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setShowYouTubePlayer(false)}
+        onRequestClose={() => {
+          handleVideoClose();
+        }}
       >
         <View className="flex-1 bg-black">
           <YouTubePlayer
             videoId={youtubeVideoId}
-            onClose={() => setShowYouTubePlayer(false)}
+            onClose={() => handleVideoClose()}
+            onVideoEnd={() => handleVideoEnd()}
           />
         </View>
       </Modal>
@@ -638,12 +662,15 @@ export default function ResourceDetailsPage() {
         visible={showWebViewPlayer}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setShowWebViewPlayer(false)}
+        onRequestClose={() => {
+          handleVideoClose();
+        }}
       >
         <WebViewPlayer
           uri={webViewUri}
-          onClose={() => setShowWebViewPlayer(false)}
+          onClose={() => handleVideoClose()}
           isVimeo={isVimeo}
+          onVideoEnd={() => handleVideoEnd()}
         />
       </Modal>
     </BaseLayout>

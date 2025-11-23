@@ -15,7 +15,9 @@ export function SeeStudentsCard({
       className="rounded-2xl p-5 mb-4 flex-row items-center justify-between"
     >
       <View className="flex-1">
-        <Text className="text-white text-xl font-bold mb-1">See Students</Text>
+        <Text className="text-white text-xl font-bold mb-1">
+          Create Student
+        </Text>
         <Text className="text-white text-sm opacity-90">{description}</Text>
       </View>
 

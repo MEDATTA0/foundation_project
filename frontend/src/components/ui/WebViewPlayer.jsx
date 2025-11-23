@@ -1,9 +1,36 @@
-import React from "react";
-import { View, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
+import * as ScreenOrientation from "expo-screen-orientation";
 
-export const WebViewPlayer = ({ uri, onClose, isVimeo }) => {
+export const WebViewPlayer = ({ uri, onClose, isVimeo, onVideoEnd }) => {
+  const [dimensions, setDimensions] = useState(Dimensions.get("window"));
+
+  // Handle orientation changes and unlock screen rotation
+  useEffect(() => {
+    // Unlock orientation when component mounts
+    ScreenOrientation.unlockAsync();
+
+    // Listen for dimension changes (orientation changes)
+    const subscription = Dimensions.addEventListener("change", ({ window }) => {
+      setDimensions(window);
+    });
+
+    // Lock back to portrait when component unmounts
+    return () => {
+      subscription?.remove();
+      ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP
+      );
+    };
+  }, []);
+
+  // Handle close - lock back to portrait
+  const handleClose = () => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    onClose();
+  };
   // For Vimeo, use direct embed URL with HTML injection
   const getVimeoHTML = (embedUrl) => {
     return `
@@ -44,7 +71,7 @@ export const WebViewPlayer = ({ uri, onClose, isVimeo }) => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.closeButton}
-        onPress={onClose}
+        onPress={handleClose}
         activeOpacity={0.7}
       >
         <Ionicons name="close" size={28} color="white" />

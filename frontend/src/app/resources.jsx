@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, ScrollView, TouchableOpacity } from "react-native";
+import { Text, View, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { BaseLayout } from "../components/layout";
@@ -195,9 +195,9 @@ export default function ResourcesPage() {
           );
         });
 
-  // Group resources by category
+  // Group resources by class name (since we don't have category from backend)
   const groupedResources = filteredResources.reduce((acc, resource) => {
-    const category = resource.category || "Other";
+    const category = resource.className || "Other";
     if (!acc[category]) {
       acc[category] = [];
     }
@@ -224,17 +224,38 @@ export default function ResourcesPage() {
     setSelectedAgeRange(ageRange);
   };
 
-  const handleRemoveResource = (resource) => {
+  const handleRemoveResource = async (resource) => {
     Alert.alert(
       "Remove Resource",
-      "Are you sure you want to remove this resource?",
+      `Are you sure you want to remove "${resource.title}"? This action cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
           style: "destructive",
-          onPress: () => {
-            console.log("Remove resource:", resource);
+          onPress: async () => {
+            try {
+              setLoading(true);
+              // Delete resource using classId and resource id
+              await api.delete(
+                API_ENDPOINTS.RESOURCES.DELETE(resource.classId, resource.id)
+              );
+
+              // Remove resource from local state
+              setResources((prevResources) =>
+                prevResources.filter((r) => r.id !== resource.id)
+              );
+
+              Alert.alert("Success", "Resource removed successfully");
+            } catch (error) {
+              console.error("Error removing resource:", error);
+              Alert.alert(
+                "Error",
+                error.message || "Failed to remove resource. Please try again."
+              );
+            } finally {
+              setLoading(false);
+            }
           },
         },
       ]
@@ -410,27 +431,17 @@ export default function ResourcesPage() {
                                       {resource.description}
                                     </Text>
                                     <View className="flex-row items-center">
-                                      <View className="px-2 py-1 bg-purple-100 rounded-full mr-2">
-                                        <Text className="text-xs font-semibold text-purple-700">
-                                          Ages {resource.ageRange.min}-
-                                          {resource.ageRange.max}
-                                        </Text>
-                                      </View>
-                                      {resource.fileType && (
-                                        <Text className="text-xs text-gray-500">
-                                          {resource.fileType}
-                                        </Text>
-                                      )}
-                                      {resource.size && (
-                                        <>
-                                          <Text className="text-xs text-gray-400 mx-1">
-                                            •
+                                      {resource.ageRange && (
+                                        <View className="px-2 py-1 bg-purple-100 rounded-full mr-2">
+                                          <Text className="text-xs font-semibold text-purple-700">
+                                            Ages {resource.ageRange.min}-
+                                            {resource.ageRange.max}
                                           </Text>
-                                          <Text className="text-xs text-gray-500">
-                                            {resource.size}
-                                          </Text>
-                                        </>
+                                        </View>
                                       )}
+                                      <Text className="text-xs text-gray-500">
+                                        {resource.className}
+                                      </Text>
                                     </View>
                                   </View>
                                 </View>

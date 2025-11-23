@@ -1,5 +1,6 @@
 import * as FileSystem from "expo-file-system";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 const DOWNLOADS_KEY = "@downloaded_resources";
 const DOWNLOADS_DIR = `${FileSystem.documentDirectory}downloads/`;
@@ -56,23 +57,24 @@ export const getLocalFilePath = async (resourceId) => {
 };
 
 /**
- * Download a resource
+ * Download a resource using react-native-blob-util
  */
-export const downloadResource = async (resourceId, url, title) => {
+export const downloadResource = async (resourceId, url, title, onProgress) => {
   try {
+    const { fs, config } = ReactNativeBlobUtil;
+    const downloadsDir = getDownloadsDir();
+
     // Ensure downloads directory exists
-    const dirInfo = await FileSystem.getInfoAsync(DOWNLOADS_DIR);
-    if (!dirInfo.exists) {
-      await FileSystem.makeDirectoryAsync(DOWNLOADS_DIR, {
-        intermediates: true,
-      });
+    const dirExists = await fs.exists(downloadsDir);
+    if (!dirExists) {
+      await fs.mkdir(downloadsDir);
     }
 
     // Get file extension from URL
     const urlParts = url.split(".");
     const extension = urlParts[urlParts.length - 1].split("?")[0] || "mp4";
     const fileName = `${resourceId}.${extension}`;
-    const localPath = `${DOWNLOADS_DIR}${fileName}`;
+    const localPath = `${downloadsDir}${fileName}`;
 
     // Check if already downloaded
     const existingPath = await getLocalFilePath(resourceId);
@@ -80,33 +82,80 @@ export const downloadResource = async (resourceId, url, title) => {
       return { success: true, localPath: existingPath, alreadyExists: true };
     }
 
-    // Download the file
-    const downloadResult = await FileSystem.downloadAsync(url, localPath);
-
-    if (downloadResult.status === 200) {
-      // Save download info to AsyncStorage
+    // Check if file already exists at path
+    const fileExists = await fs.exists(localPath);
+    if (fileExists) {
+      // File exists, use it
+      const finalPath =
+        Platform.OS === "ios" ? `file://${localPath}` : localPath;
       const downloads = await getDownloadedResources();
       downloads[resourceId] = {
         resourceId,
         url,
         title,
-        localPath: downloadResult.uri,
+        localPath: finalPath,
         downloadedAt: new Date().toISOString(),
-        fileSize: downloadResult.headers?.["content-length"] || 0,
+        fileSize: 0,
       };
       await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
-
-      return {
-        success: true,
-        localPath: downloadResult.uri,
-        alreadyExists: false,
-      };
-    } else {
-      throw new Error("Download failed");
+      return { success: true, localPath: finalPath, alreadyExists: true };
     }
+
+    // Download the file with progress tracking
+    const downloadOptions = {
+      fileCache: true,
+      path: localPath,
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        title: title || "Downloading video",
+        description: "Downloading video file...",
+        mime: `video/${extension}`,
+        mediaScannable: true,
+      },
+    };
+
+    const response = await ReactNativeBlobUtil.config(downloadOptions)
+      .fetch("GET", url)
+      .progress((received, total) => {
+        if (onProgress) {
+          const progress = received / total;
+          onProgress(progress);
+        }
+      });
+
+    // Get the file path
+    let finalPath = response.path();
+
+    // For iOS, ensure file:// prefix
+    if (Platform.OS === "ios" && !finalPath.startsWith("file://")) {
+      finalPath = `file://${finalPath}`;
+    }
+
+    // Get file size
+    const fileInfo = await fs.stat(finalPath);
+    const fileSize = fileInfo.size || 0;
+
+    // Save download info to AsyncStorage
+    const downloads = await getDownloadedResources();
+    downloads[resourceId] = {
+      resourceId,
+      url,
+      title,
+      localPath: finalPath,
+      downloadedAt: new Date().toISOString(),
+      fileSize: fileSize,
+    };
+    await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
+
+    return {
+      success: true,
+      localPath: finalPath,
+      alreadyExists: false,
+    };
   } catch (error) {
     console.error("Error downloading resource:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Download failed" };
   }
 };
 

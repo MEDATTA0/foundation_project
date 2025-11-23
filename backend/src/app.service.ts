@@ -32,6 +32,29 @@ export class AppService {
       this.prisma.resource.count({ where: { classId: { in: classIds } } }),
       this.prisma.classSession.findMany({
         where: { classId: { in: classIds } },
+        include: {
+          class: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          Attendance: {
+            select: {
+              id: true,
+              present: true,
+              student: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
         take: 5,
       }),
     ]);

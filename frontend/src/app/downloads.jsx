@@ -1,88 +1,172 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, ScrollView, TouchableOpacity } from "react-native";
+import {
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Linking,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { BaseLayout } from "../components/layout";
 import { BottomNavigation } from "../components/navigation";
-import { NAVIGATION_TABS, COLORS } from "../constants";
+import { NAVIGATION_TABS, COLORS, API_ENDPOINTS } from "../constants";
+import { api } from "../services/api";
+import { useAuthStore } from "../stores";
+import {
+  getDownloadedResources,
+  removeDownloadedResource,
+  getLocalFilePath,
+} from "../utils/downloadManager";
+import * as FileSystem from "expo-file-system";
 
 export default function DownloadsPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const [downloads, setDownloads] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Mock downloads data - will be replaced with actual API call
-  const mockDownloads = [
-    {
-      id: 1,
-      resourceId: 1,
-      title: "Basic Counting Course",
-      description: "Learn numbers 1-10 with fun activities",
-      type: "document",
-      category: "Mathematics",
-      fileType: "PDF",
-      size: "2.4 MB",
-      downloadedAt: "2024-11-15T10:30:00",
-      downloadStatus: "completed",
-    },
-    {
-      id: 2,
-      resourceId: 2,
-      title: "Alphabet Adventure",
-      description: "Interactive alphabet learning",
-      type: "video",
-      category: "Language",
-      fileType: "MP4",
-      size: "125 MB",
-      downloadedAt: "2024-11-14T15:45:00",
-      downloadStatus: "completed",
-    },
-    {
-      id: 3,
-      resourceId: 3,
-      title: "Simple Addition",
-      description: "Introduction to addition for beginners",
-      type: "document",
-      category: "Mathematics",
-      fileType: "PDF",
-      size: "1.8 MB",
-      downloadedAt: "2024-11-13T09:20:00",
-      downloadStatus: "completed",
-    },
-    {
-      id: 4,
-      resourceId: 7,
-      title: "Advanced Mathematics",
-      description: "Complex problem solving",
-      type: "document",
-      category: "Mathematics",
-      fileType: "PDF",
-      size: "4.5 MB",
-      downloadedAt: "2024-11-12T14:10:00",
-      downloadStatus: "completed",
-    },
-  ];
+  // Determine resource type from URL
+  const getResourceType = (url) => {
+    if (!url) return "link";
 
-  // Fetch downloads from backend
+    // Check for YouTube/Vimeo first
+    if (
+      url.includes("youtube.com") ||
+      url.includes("youtu.be") ||
+      url.includes("vimeo.com")
+    )
+      return "video";
+
+    // Check for document URLs
+    if (
+      url.match(/\.(pdf|doc|docx)$/i) ||
+      url.includes("drive.google.com") ||
+      url.includes("dropbox.com")
+    )
+      return "document";
+
+    // Check for direct video file URLs
+    if (url.match(/\.(mp4|avi|mov|m4v|mkv|webm)$/i)) return "video";
+
+    // Check for images
+    if (url.match(/\.(jpg|jpeg|png|gif)$/i)) return "image";
+
+    return "link";
+  };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return "Unknown size";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  };
+
+  // Get file extension from URL
+  const getFileExtension = (url) => {
+    if (!url) return "";
+    const match = url.match(/\.([^.?#]+)(\?|#|$)/);
+    return match ? match[1].toUpperCase() : "";
+  };
+
+  // Fetch downloads from AsyncStorage and match with API resources
   useEffect(() => {
     const fetchDownloads = async () => {
+      if (!isAuthenticated) return;
+
       setLoading(true);
       try {
-        // TODO: Replace with actual API call
-        // const response = await api.get('/downloads');
-        // setDownloads(response.data);
+        // Get all downloaded resources from AsyncStorage
+        const downloadedResources = await getDownloadedResources();
+        const downloadEntries = Object.entries(downloadedResources);
 
-        // Using mock data for now
-        setDownloads(mockDownloads);
+        if (downloadEntries.length === 0) {
+          setDownloads([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch all resources from API to get full details
+        let allResources = [];
+        try {
+          allResources = await api.get(API_ENDPOINTS.RESOURCES.LIST);
+        } catch (error) {
+          console.error("Error fetching resources:", error);
+          // Continue with just the stored data if API fails
+        }
+
+        // Create a map of resourceId to resource details
+        const resourceMap = new Map();
+        allResources.forEach((resource) => {
+          resourceMap.set(resource.id, resource);
+        });
+
+        // Transform downloaded resources to match UI expectations
+        const transformedDownloads = await Promise.all(
+          downloadEntries.map(async ([resourceId, downloadInfo]) => {
+            // Get resource details from API if available
+            const apiResource = resourceMap.get(resourceId);
+
+            // Determine type from URL
+            const url = downloadInfo.url || "";
+            const type = getResourceType(url);
+
+            // Get file extension
+            const fileExtension = getFileExtension(url);
+
+            // Get file size
+            const fileSize = downloadInfo.fileSize || 0;
+
+            // Verify file still exists
+            const localPath = await getLocalFilePath(resourceId);
+            if (!localPath) {
+              // File doesn't exist, skip it
+              return null;
+            }
+
+            return {
+              id: resourceId,
+              resourceId: resourceId,
+              title:
+                downloadInfo.title || apiResource?.title || "Untitled Resource",
+              description: apiResource?.description || "",
+              type: type,
+              category: apiResource?.class?.name || "Uncategorized",
+              fileType: fileExtension || "File",
+              size: formatFileSize(fileSize),
+              downloadedAt:
+                downloadInfo.downloadedAt || new Date().toISOString(),
+              downloadStatus: "completed",
+              localPath: localPath,
+              classId: apiResource?.classId,
+              url: url,
+            };
+          })
+        );
+
+        // Filter out null entries (files that don't exist)
+        const validDownloads = transformedDownloads.filter(Boolean);
+
+        // Sort by download date (newest first)
+        validDownloads.sort((a, b) => {
+          return new Date(b.downloadedAt) - new Date(a.downloadedAt);
+        });
+
+        setDownloads(validDownloads);
       } catch (error) {
         console.error("Error fetching downloads:", error);
+        Alert.alert("Error", "Failed to load downloads");
       } finally {
         setLoading(false);
       }
     };
 
     fetchDownloads();
-  }, []);
+  }, [isAuthenticated]);
 
   const getResourceIcon = (type) => {
     switch (type) {
@@ -117,23 +201,116 @@ export default function DownloadsPage() {
   };
 
   const handleViewResource = (download) => {
-    // Navigate to resource details page
-    router.push(`/resources/${download.resourceId}`);
+    // Navigate to resource details page if we have classId
+    if (download.classId) {
+      router.push({
+        pathname: `/resources/${download.resourceId}`,
+        params: { classId: download.classId },
+      });
+    } else {
+      Alert.alert(
+        "Information",
+        "Resource details are not available. The resource may have been removed from its class."
+      );
+    }
   };
 
-  const handleDeleteDownload = (downloadId) => {
-    // Delete download
-    console.log("Deleting download:", downloadId);
-    // TODO: Implement delete functionality
-    // await api.delete(`/downloads/${downloadId}`);
-    setDownloads((prev) => prev.filter((d) => d.id !== downloadId));
+  const handleDeleteDownload = async (download) => {
+    Alert.alert(
+      "Delete Download",
+      `Are you sure you want to delete "${download.title}"? This will remove it from your device.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await removeDownloadedResource(
+                download.resourceId
+              );
+              if (result.success) {
+                // Remove from local state
+                setDownloads((prev) =>
+                  prev.filter((d) => d.id !== download.resourceId)
+                );
+                Alert.alert("Success", "Download removed successfully");
+              } else {
+                Alert.alert(
+                  "Error",
+                  result.error || "Failed to remove download"
+                );
+              }
+            } catch (error) {
+              console.error("Error deleting download:", error);
+              Alert.alert("Error", "Failed to remove download");
+            }
+          },
+        },
+      ]
+    );
   };
 
-  const handleOpenFile = (download) => {
-    // Open downloaded file
-    console.log("Opening file:", download);
-    // TODO: Implement file opening functionality
-    alert(`Opening ${download.title}...`);
+  const handleOpenFile = async (download) => {
+    try {
+      if (!download.localPath) {
+        Alert.alert("Error", "File path not found");
+        return;
+      }
+
+      // Check if file exists
+      const fileInfo = await FileSystem.getInfoAsync(download.localPath);
+      if (!fileInfo.exists) {
+        Alert.alert(
+          "File Not Found",
+          "The downloaded file no longer exists. It may have been deleted."
+        );
+        // Remove from downloads
+        await removeDownloadedResource(download.resourceId);
+        setDownloads((prev) =>
+          prev.filter((d) => d.id !== download.resourceId)
+        );
+        return;
+      }
+
+      // For videos, navigate to resource details page to use the video player
+      if (download.type === "video") {
+        if (download.classId) {
+          router.push({
+            pathname: `/resources/${download.resourceId}`,
+            params: { classId: download.classId },
+          });
+        } else {
+          Alert.alert(
+            "Information",
+            "Cannot open video. Resource details are not available."
+          );
+        }
+      } else {
+        // For other file types, try to open with system default app
+        const canOpen = await Linking.canOpenURL(download.localPath);
+        if (canOpen) {
+          await Linking.openURL(download.localPath);
+        } else {
+          // Try with file:// prefix if not already present
+          const filePath = download.localPath.startsWith("file://")
+            ? download.localPath
+            : `file://${download.localPath}`;
+          const canOpenWithPrefix = await Linking.canOpenURL(filePath);
+          if (canOpenWithPrefix) {
+            await Linking.openURL(filePath);
+          } else {
+            Alert.alert(
+              "Cannot Open File",
+              "Unable to open this file type. Please use a file manager app."
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error opening file:", error);
+      Alert.alert("Error", "Failed to open file");
+    }
   };
 
   // Group downloads by date
@@ -148,7 +325,7 @@ export default function DownloadsPage() {
 
   return (
     <BaseLayout
-      showBottomNav={true}
+      showBottomNav={false}
       bottomNav={<BottomNavigation tabs={NAVIGATION_TABS} />}
       backgroundColor="bg-white"
     >
@@ -213,7 +390,8 @@ export default function DownloadsPage() {
           <View className="bg-white -mt-6 pb-6">
             {loading ? (
               <View className="px-6 py-12 items-center justify-center">
-                <Text className="text-gray-500 text-base">
+                <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+                <Text className="text-gray-500 text-base mt-4">
                   Loading downloads...
                 </Text>
               </View>
@@ -326,9 +504,7 @@ export default function DownloadsPage() {
                                 />
                               </TouchableOpacity>
                               <TouchableOpacity
-                                onPress={() =>
-                                  handleDeleteDownload(download.id)
-                                }
+                                onPress={() => handleDeleteDownload(download)}
                                 activeOpacity={0.7}
                                 className="px-4 py-2 rounded-lg border border-red-300"
                               >

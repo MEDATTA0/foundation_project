@@ -2,8 +2,9 @@ import React from "react";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuthStore } from "../../stores";
+import { Ionicons } from "@expo/vector-icons";
 
-export function ProfileHeader({ userName, userImage, onNotificationPress }) {
+export function ProfileHeader({ userName, userImage, onDownloadsPress }) {
   const { top } = useSafeAreaInsets();
   const { user } = useAuthStore();
 
@@ -44,11 +45,13 @@ export function ProfileHeader({ userName, userImage, onNotificationPress }) {
 
       {/* Notification Icon */}
       <TouchableOpacity
-        onPress={onNotificationPress}
+        onPress={onDownloadsPress}
         className="p-2"
         activeOpacity={0.7}
       >
-        <Text className="text-2xl">🔔</Text>
+        <Text className="text-2xl">
+          <Ionicons name="download-outline" size={28} color="black" />
+        </Text>
       </TouchableOpacity>
     </View>
   );

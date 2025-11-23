@@ -37,7 +37,8 @@ export function RecentSessions() {
     if (!createdAt) return "N/A";
 
     const startTime = new Date(createdAt);
-    const endTime = new Date(startTime.getTime() + duration * 60 * 60 * 1000);
+    // Duration is in minutes, not hours
+    const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
     const formatTime = (date) => {
       return date.toLocaleTimeString("en-US", {
@@ -51,19 +52,30 @@ export function RecentSessions() {
   };
 
   // Transform backend session to component format
-  const transformedSessions = sessions.map((session) => ({
-    id: session.id,
-    className: session.location
-      ? `Class Session - ${session.location}`
-      : `Class Session`,
-    date: formatDate(session.createdAt),
-    time: formatTime(session.duration, session.createdAt),
-    attendance: "N/A", // Not available in current response
-    status: "completed",
-    subject: "General",
-    classId: session.classId,
-    duration: session.duration,
-  }));
+  const transformedSessions = sessions.map((session) => {
+    // Calculate attendance count
+    // Check both possible property names (Prisma might return different casing)
+    const attendanceArray = session.Attendance || session.attendance || [];
+    const attendanceCount = Array.isArray(attendanceArray)
+      ? attendanceArray.filter((a) => a.present === true).length
+      : 0;
+    const totalAttendance = Array.isArray(attendanceArray)
+      ? attendanceArray.length
+      : 0;
+
+    return {
+      id: session.id,
+      className: session.class?.name || "Class Session",
+      date: formatDate(session.createdAt),
+      time: formatTime(session.duration, session.createdAt),
+      attendance:
+        totalAttendance > 0 ? `${attendanceCount}/${totalAttendance}` : "0/0",
+      status: "completed",
+      subject: "General",
+      classId: session.classId,
+      duration: session.duration,
+    };
+  });
 
   if (transformedSessions.length === 0) {
     return (

@@ -1,15 +1,49 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  Text,
+  Alert,
+  Dimensions,
+} from "react-native";
 import Video from "react-native-video";
 import { Ionicons } from "@expo/vector-icons";
+import * as ScreenOrientation from "expo-screen-orientation";
 import { COLORS } from "../../constants";
 
-export const VideoPlayer = ({ uri, onClose }) => {
+export const VideoPlayer = ({ uri, onClose, onVideoEnd }) => {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
+  const [dimensions, setDimensions] = useState(Dimensions.get("window"));
+
+  // Handle orientation changes and unlock screen rotation
+  useEffect(() => {
+    // Unlock orientation when component mounts
+    ScreenOrientation.unlockAsync();
+
+    // Listen for dimension changes (orientation changes)
+    const subscription = Dimensions.addEventListener("change", ({ window }) => {
+      setDimensions(window);
+    });
+
+    // Lock back to portrait when component unmounts
+    return () => {
+      subscription?.remove();
+      ScreenOrientation.lockAsync(
+        ScreenOrientation.OrientationLock.PORTRAIT_UP
+      );
+    };
+  }, []);
+
+  // Handle close - lock back to portrait
+  const handleClose = () => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
+    onClose();
+  };
 
   // Validate URI is not a YouTube/Vimeo URL - prevent rendering if invalid
   const isValidVideoUri =
@@ -44,6 +78,9 @@ export const VideoPlayer = ({ uri, onClose }) => {
   const handleEnd = () => {
     setIsPlaying(false);
     setCurrentTime(0);
+    if (onVideoEnd) {
+      onVideoEnd();
+    }
   };
 
   const seekTo = (time) => {
@@ -104,12 +141,19 @@ export const VideoPlayer = ({ uri, onClose }) => {
     );
   }
 
+  const isLandscape = dimensions.width > dimensions.height;
+  // In fullscreen modal, use full screen dimensions
+  const videoHeight = dimensions.height;
+  const videoWidth = dimensions.width;
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[styles.container, { height: videoHeight, width: videoWidth }]}
+    >
       <Video
         ref={videoRef}
         source={{ uri }}
-        style={styles.video}
+        style={[styles.video, { height: videoHeight, width: videoWidth }]}
         paused={!isPlaying}
         resizeMode="contain"
         onProgress={handleProgress}
@@ -129,7 +173,7 @@ export const VideoPlayer = ({ uri, onClose }) => {
         <View style={styles.controlsOverlay}>
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={onClose}
+            onPress={handleClose}
             activeOpacity={0.7}
           >
             <Ionicons name="close" size={28} color="white" />
@@ -198,7 +242,6 @@ const formatTime = (millis) => {
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    height: 250,
     backgroundColor: "#000",
     borderRadius: 12,
     overflow: "hidden",
@@ -206,7 +249,6 @@ const styles = StyleSheet.create({
   },
   video: {
     width: "100%",
-    height: "100%",
     position: "absolute",
     top: 0,
     left: 0,

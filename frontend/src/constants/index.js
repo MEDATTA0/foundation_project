@@ -42,6 +42,19 @@ export const API_ENDPOINTS = {
     UPDATE: (classId, id) => `/classes/${classId}/resources/${id}`,
     DELETE: (classId, id) => `/classes/${classId}/resources/${id}`,
   },
+  CLASS_SESSIONS: {
+    LIST: (classId) => `/class-sessions?classId=${classId}`,
+    CREATE: "/class-sessions",
+    GET: (id) => `/class-sessions/${id}`,
+    UPDATE: (id) => `/class-sessions/${id}`,
+    DELETE: (id) => `/class-sessions/${id}`,
+  },
+  ATTENDANCES: {
+    CREATE: "/attendances",
+    LIST: (classSessionId) => `/attendances?classSessionId=${classSessionId}`,
+    GET: (id) => `/attendances/${id}`,
+    UPDATE: (id) => `/attendances/${id}`,
+  },
 };
 
 // App Configuration

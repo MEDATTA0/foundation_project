@@ -99,11 +99,58 @@ export class ResourcesService {
     updateResourceDto: UpdateResourceDto,
     currentUserId: string,
   ) {
-    await this.findOne(classId, resourceId, currentUserId);
+    const teacher = await this.getTeacherFromUserId(currentUserId);
+
+    const resource = await this.prisma.resource.findUnique({
+      where: { id: resourceId },
+      include: { class: true },
+    });
+
+    if (!resource) {
+      throw new NotFoundException('Resource not found');
+    }
+
+    // Verify the resource's current class belongs to the teacher
+    if (resource.class.teacherId !== teacher.id) {
+      throw new ForbiddenException('You do not own this resource');
+    }
+
+    // Verify the target class (from URL or updateDto) belongs to the teacher
+    const targetClassId = updateResourceDto.classId || classId;
+    const targetClass = await this.prisma.class.findUnique({
+      where: { id: targetClassId },
+    });
+
+    if (!targetClass) {
+      throw new NotFoundException('Target class not found');
+    }
+
+    if (targetClass.teacherId !== teacher.id) {
+      throw new ForbiddenException('You do not own the target class');
+    }
+
+    // Prepare update data - use classId from updateDto if provided, otherwise use URL param
+    const { classId: updateClassId, ...restUpdateDto } = updateResourceDto;
+    const updateData: {
+      title?: string;
+      description?: string;
+      resource: string;
+      ageMin?: number;
+      ageMax?: number;
+      classId?: string;
+    } = { ...restUpdateDto };
+
+    // Update classId if it's different from current
+    if (updateClassId && updateClassId !== resource.classId) {
+      updateData.classId = updateClassId;
+    } else if (!updateClassId && targetClassId !== resource.classId) {
+      // If no classId in updateDto but URL classId is different, update it
+      updateData.classId = targetClassId;
+    }
 
     const updatedResource = await this.prisma.resource.update({
       where: { id: resourceId },
-      data: { ...updateResourceDto },
+      data: updateData,
     });
 
     return updatedResource;

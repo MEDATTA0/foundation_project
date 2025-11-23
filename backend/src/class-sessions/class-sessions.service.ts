@@ -26,7 +26,24 @@ export class ClassSessionsService {
   async findOne(id: string) {
     const found = await this.prisma.classSession.findUnique({
       where: { id },
-      include: { Attendance: true, class: true },
+      include: {
+        Attendance: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        class: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
     if (!found)
       throw new NotFoundException(`Class Session with id ${id} not found`);

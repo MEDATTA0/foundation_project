@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, ScrollView, TouchableOpacity } from "react-native";
+import {
+  Text,
+  View,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { BaseLayout } from "../../components/layout";
-import { COLORS } from "../../constants";
+import { COLORS, API_ENDPOINTS } from "../../constants";
+import { api } from "../../services/api";
+import { useAuthStore } from "../../stores";
 
 // Mock session data - to be replaced with actual API call
 const mockSessionsData = {
@@ -303,6 +312,7 @@ const mockSessionsData = {
 export default function SessionDetailsPage() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
+  const { isAuthenticated } = useAuthStore();
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditingAttendance, setIsEditingAttendance] = useState(false);
@@ -310,19 +320,70 @@ export default function SessionDetailsPage() {
   // Fetch session data
   useEffect(() => {
     const fetchSessionData = async () => {
+      if (!id || !isAuthenticated) return;
+
       setLoading(true);
       try {
-        // TODO: Replace with actual API call
-        // const response = await api.get(`/sessions/${id}`);
-        // setSession(response.data);
+        const data = await api.get(API_ENDPOINTS.CLASS_SESSIONS.GET(id));
 
-        // Using mock data
-        const sessionData = mockSessionsData[parseInt(id)];
-        if (sessionData) {
-          setSession(sessionData);
-        }
+        // Transform backend data to match component expectations
+        // Check both possible property names (Prisma might return different casing)
+        const attendanceArray = data.Attendance || data.attendance || [];
+        const attendedCount = Array.isArray(attendanceArray)
+          ? attendanceArray.filter((a) => a.present === true).length
+          : 0;
+        const totalStudents = Array.isArray(attendanceArray)
+          ? attendanceArray.length
+          : 0;
+
+        // Calculate end time
+        const startTime = new Date(data.createdAt);
+        const endTime = new Date(
+          startTime.getTime() + (data.duration || 0) * 60 * 1000
+        );
+
+        const transformedSession = {
+          id: data.id,
+          className: data.class?.name || "Class Session",
+          subject: "General",
+          date: data.createdAt,
+          time: `${startTime.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })} - ${endTime.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })}`,
+          location: data.location || "Not specified",
+          duration: data.duration
+            ? `${Math.floor(data.duration / 60)} hour${
+                Math.floor(data.duration / 60) !== 1 ? "s" : ""
+              } ${data.duration % 60} minute${
+                data.duration % 60 !== 1 ? "s" : ""
+              }`
+            : "N/A",
+          totalStudents: totalStudents,
+          attendedStudents: attendedCount,
+          attendancePercentage:
+            totalStudents > 0
+              ? parseFloat(((attendedCount / totalStudents) * 100).toFixed(1))
+              : 0,
+          status: "completed",
+          resources: [],
+          students: attendanceArray.map((attendance) => ({
+            id: attendance.student?.id || attendance.studentId,
+            name: attendance.student?.name || "Unknown Student",
+            attended: attendance.present === true,
+          })),
+          classId: data.classId,
+        };
+
+        setSession(transformedSession);
       } catch (error) {
         console.error("Error fetching session data:", error);
+        Alert.alert("Error", error.message || "Failed to load session details");
       } finally {
         setLoading(false);
       }
@@ -331,7 +392,7 @@ export default function SessionDetailsPage() {
     if (id) {
       fetchSessionData();
     }
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   const getSubjectIcon = (subject) => {
     const icons = {
@@ -382,7 +443,10 @@ export default function SessionDetailsPage() {
 
     const newAttendedCount = updatedStudents.filter((s) => s.attended).length;
     const newTotalStudents = updatedStudents.length;
-    const newAttendancePercentage = (newAttendedCount / newTotalStudents) * 100;
+    const newAttendancePercentage =
+      newTotalStudents > 0
+        ? parseFloat(((newAttendedCount / newTotalStudents) * 100).toFixed(1))
+        : 0;
 
     setSession({
       ...session,
@@ -427,6 +491,19 @@ export default function SessionDetailsPage() {
       <BaseLayout showBottomNav={false} backgroundColor="bg-white">
         <View className="flex-1 items-center justify-center">
           <Text className="text-gray-500 text-base">Loading session...</Text>
+        </View>
+      </BaseLayout>
+    );
+  }
+
+  if (loading) {
+    return (
+      <BaseLayout showBottomNav={false} backgroundColor="bg-white">
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+          <Text className="text-gray-500 text-base mt-4">
+            Loading session...
+          </Text>
         </View>
       </BaseLayout>
     );
@@ -503,7 +580,10 @@ export default function SessionDetailsPage() {
                   Attendance
                 </Text>
                 <Text className="text-xs font-semibold px-2 py-1 rounded-full bg-white/30 text-white">
-                  {session.attendancePercentage.toFixed(1)}%
+                  {session.attendancePercentage
+                    ? session.attendancePercentage.toFixed(1)
+                    : 0}
+                  %
                 </Text>
               </View>
               <View className="flex-row items-center">
@@ -512,7 +592,7 @@ export default function SessionDetailsPage() {
                     <View
                       className="h-full rounded-full bg-white"
                       style={{
-                        width: `${session.attendancePercentage}%`,
+                        width: `${session.attendancePercentage || 0}%`,
                       }}
                     />
                   </View>

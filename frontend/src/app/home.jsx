@@ -28,9 +28,9 @@ export default function HomePage() {
   } = useAppStore();
   const { isAuthenticated } = useAuthStore();
 
-  const handleNotificationPress = () => {
+  const handleDownloadsPress = () => {
     // Navigate to notifications or show notification modal
-    console.log("Notifications pressed");
+    router.push("/downloads");
   };
 
   const handleSeeStudentsPress = () => {
@@ -88,7 +88,7 @@ export default function HomePage() {
         }
       >
         {/* Profile Header */}
-        <ProfileHeader onNotificationPress={handleNotificationPress} />
+        <ProfileHeader onDownloadsPress={handleDownloadsPress} />
 
         {/* Main Content */}
         <View className="px-4 pt-4 pb-8">
