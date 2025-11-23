@@ -12,6 +12,10 @@ import { ClassSessionsService } from './class-sessions.service';
 import { CreateClassSessionDto } from './dto/create-class-session.dto';
 import { UpdateClassSessionDto } from './dto/update-class-session.dto';
 import {
+  ClassSessionResponseDto,
+  ClassSessionWithDetailsResponseDto,
+} from './dto/class-session-response.dto';
+import {
   ApiTags,
   ApiOperation,
   ApiResponse,
@@ -28,7 +32,11 @@ export class ClassSessionsController {
   constructor(private readonly classSessionsService: ClassSessionsService) {}
 
   @ApiOperation({ summary: 'Create a class session' })
-  @ApiResponse({ status: 201, description: 'Session created' })
+  @ApiResponse({
+    status: 201,
+    description: 'Session created',
+    type: ClassSessionResponseDto,
+  })
   @ApiBody({ type: CreateClassSessionDto })
   @Post()
   create(@Body() createClassSessionDto: CreateClassSessionDto) {
@@ -37,7 +45,11 @@ export class ClassSessionsController {
 
   @ApiOperation({ summary: 'Get all class sessions' })
   @ApiQuery({ name: 'classId', required: true, description: 'Filter by class' })
-  @ApiResponse({ status: 200, description: 'Session list retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Session list retrieved',
+    type: [ClassSessionWithDetailsResponseDto],
+  })
   @Get()
   findAll(@Query('classId') classId: string) {
     return this.classSessionsService.findAll(classId);
@@ -45,7 +57,11 @@ export class ClassSessionsController {
 
   @ApiOperation({ summary: 'Get session by ID' })
   @ApiParam({ name: 'id', description: 'Session ID' })
-  @ApiResponse({ status: 200, description: 'Session retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Session retrieved',
+    type: ClassSessionWithDetailsResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -55,7 +71,11 @@ export class ClassSessionsController {
   @ApiOperation({ summary: 'Update a class session' })
   @ApiParam({ name: 'id', description: 'Session ID' })
   @ApiBody({ type: UpdateClassSessionDto })
-  @ApiResponse({ status: 200, description: 'Session updated' })
+  @ApiResponse({
+    status: 200,
+    description: 'Session updated',
+    type: ClassSessionResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Patch(':id')
   update(
@@ -67,7 +87,11 @@ export class ClassSessionsController {
 
   @ApiOperation({ summary: 'Delete a class session' })
   @ApiParam({ name: 'id', description: 'Session ID' })
-  @ApiResponse({ status: 200, description: 'Session deleted' })
+  @ApiResponse({
+    status: 200,
+    description: 'Session deleted',
+    type: ClassSessionResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Delete(':id')
   remove(@Param('id') id: string) {

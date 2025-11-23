@@ -17,3 +17,16 @@ export class CreateStudentDto {
   @IsDateString()
   birthDate: string;
 }
+
+export class CreateStudentResponseDto {
+  @ApiProperty()
+  id: string;
+  @ApiProperty()
+  name: string;
+  @ApiProperty()
+  birthDate: string;
+  @ApiProperty()
+  createdAt: string;
+  @ApiProperty()
+  updatedAt: string;
+}

@@ -18,3 +18,16 @@ export class CreateEnrollmentDto {
   @IsNotEmpty()
   classId: string;
 }
+
+export class CreateEnrollmentResponseDto {
+  @ApiProperty()
+  id: string;
+  @ApiProperty()
+  classId: string;
+  @ApiProperty()
+  studentId: string;
+  @ApiProperty()
+  createdAt: string;
+  @ApiProperty()
+  updatedAT: string;
+}

@@ -5,6 +5,10 @@ import { SignUpDto } from './dtos/signUp.dto';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { changePasswordDto } from './dtos/changePassword.dto';
+import {
+  AuthResponseDto,
+  PasswordUpdateResponseDto,
+} from './dtos/auth-response.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -13,7 +17,11 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @ApiOperation({ summary: 'Login' })
-  @ApiResponse({ status: 200, description: 'Login successful' })
+  @ApiResponse({
+    status: 200,
+    description: 'Login successful',
+    type: AuthResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiBody({ type: SignInDto })
   @Post('login')
@@ -22,7 +30,11 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Register new user' })
-  @ApiResponse({ status: 201, description: 'User registered' })
+  @ApiResponse({
+    status: 201,
+    description: 'User registered',
+    type: AuthResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid data' })
   @ApiBody({ type: SignUpDto })
   @Post('register')
@@ -38,7 +50,11 @@ export class AuthController {
   }
 
   @ApiOperation({ summary: 'Change password' })
-  @ApiResponse({ status: 200, description: 'Password updated' })
+  @ApiResponse({
+    status: 200,
+    description: 'Password updated',
+    type: PasswordUpdateResponseDto,
+  })
   @ApiBody({ type: changePasswordDto })
   @Patch('update-password')
   async updatePassword(@Body() dto: changePasswordDto) {

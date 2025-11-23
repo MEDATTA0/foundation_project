@@ -10,6 +10,7 @@ import {
 import { ClassesService } from './classes.service';
 import { CreateClassDto } from './dto/create-class.dto';
 import { UpdateClassDto } from './dto/update-class.dto';
+import { ClassResponseDto } from './dto/class-response.dto';
 import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import {
   ApiTags,
@@ -27,7 +28,11 @@ export class ClassesController {
   constructor(private readonly classesService: ClassesService) {}
 
   @ApiOperation({ summary: 'Create a class' })
-  @ApiResponse({ status: 201, description: 'Class created' })
+  @ApiResponse({
+    status: 201,
+    description: 'Class created',
+    type: ClassResponseDto,
+  })
   @ApiBody({ type: CreateClassDto })
   @Post()
   create(
@@ -39,7 +44,11 @@ export class ClassesController {
   }
 
   @ApiOperation({ summary: 'Get all classes' })
-  @ApiResponse({ status: 200, description: 'Class list retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Class list retrieved',
+    type: [ClassResponseDto],
+  })
   @Get()
   findAll(@Session() session: UserSession) {
     const currentUserId = session.user.id;
@@ -48,7 +57,11 @@ export class ClassesController {
 
   @ApiOperation({ summary: 'Get class by ID' })
   @ApiParam({ name: 'id', description: 'Class ID' })
-  @ApiResponse({ status: 200, description: 'Class retrieved' })
+  @ApiResponse({
+    status: 200,
+    description: 'Class retrieved',
+    type: ClassResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Get(':id')
   findOne(@Param('id') id: string, @Session() session: UserSession) {
@@ -59,7 +72,11 @@ export class ClassesController {
   @ApiOperation({ summary: 'Update a class' })
   @ApiParam({ name: 'id', description: 'Class ID' })
   @ApiBody({ type: UpdateClassDto })
-  @ApiResponse({ status: 200, description: 'Class updated' })
+  @ApiResponse({
+    status: 200,
+    description: 'Class updated',
+    type: ClassResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Not found' })
   @Patch(':id')
   update(
