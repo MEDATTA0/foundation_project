@@ -1,0 +1,109 @@
+---
+- name: Configure servers
+  hosts: servers
+  become: true
+  vars:
+    docker_username: "{{ lookup('env', 'DOCKER_USERNAME') }}"
+    docker_token: "{{ lookup('env', 'DOCKER_TOKEN') }}"
+    docker_image: '{{ docker_username }}/foundation_project'
+    database_url: "{{ lookup('env', 'DATABASE_URL') }}"
+    direct_url: "{{ lookup('env', 'DIRECT_URL') }}"
+    nginx_server_name: 'foundation_project.datacloudcom.com'
+    backend_server_port: '8000'
+
+  tasks:
+    # --- Prerequisites ---
+    - name: Update cache and install dependencies
+      ansible.builtin.apt:
+        name:
+          - nginx
+          - ca-certificates
+          - curl
+          - gnupg
+          - python3-docker # Required for Ansible to control Docker
+        update_cache: true
+        state: present
+
+    # --- Docker Installation ---
+    - name: Add Docker GPG apt key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      ansible.builtin.apt_repository:
+        repo: 'deb https://download.docker.com/linux/ubuntu noble stable'
+        state: present
+
+    - name: Install Docker Engine
+      ansible.builtin.apt:
+        name: docker-ce
+        state: present
+        update_cache: true
+
+    # --- Docker Deployment ---
+    - name: Login to docker
+      community.docker.docker_login:
+        username: '{{ docker_username }}'
+        password: '{{ docker_token }}'
+        registry_url: https://index.docker.io/v1/
+
+    - name: Pull docker image
+      community.docker.docker_image:
+        name: '{{ docker_image }}'
+        tag: latest
+        source: pull
+        force_source: true
+
+    - name: Push the .env file
+      ansible.builtin.copy:
+        src: .env
+        dest: /opt/.env
+        mode: '644'
+
+    - name: Run the container
+      community.docker.docker_container:
+        name: test
+        image: '{{ docker_image }}:latest'
+        state: started
+        restart_policy: always
+        recreate: true
+        ports:
+          - '8000:8000'
+        env_file: /opt/.env
+        env:
+          DATABASE_URL: '{{ database_url }}'
+          DIRECT_URL: '{{ direct_url }}'
+
+    # --- Nginx Configuration ---
+    - name: Copy NGINX configuration template
+      ansible.builtin.template:
+        src: nginx_proxy.conf.j2
+        dest: '/etc/nginx/sites-available/{{ nginx_server_name }}.conf'
+        mode: '0644'
+
+    - name: Create a symlink
+      ansible.builtin.file:
+        src: '/etc/nginx/sites-available/{{ nginx_server_name }}.conf'
+        dest: '/etc/nginx/sites-enabled/{{ nginx_server_name }}.conf'
+        state: link
+        force: true
+      notify: Reload NGINX
+
+    - name: Remove default NGINX site
+      ansible.builtin.file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload NGINX
+
+    - name: Ensure NGINX is running
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload NGINX
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded # Reload is safer than restart for live traffic
