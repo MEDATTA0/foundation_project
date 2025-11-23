@@ -12,6 +12,7 @@ import { EnrollmentsModule } from './enrollments/enrollments.module';
 import { UsersModule } from './users/users.module';
 import { AttendancesModule } from './attendances/attendances.module';
 import { ClassSessionsModule } from './class-sessions/class-sessions.module';
+import { ResourcesModule } from './resources/resources.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -24,6 +25,7 @@ import { ClassSessionsModule } from './class-sessions/class-sessions.module';
     UsersModule,
     AttendancesModule,
     ClassSessionsModule,
+    ResourcesModule,
   ],
 
   controllers: [AppController],
